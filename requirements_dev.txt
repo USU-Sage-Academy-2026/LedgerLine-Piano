@@ -1,0 +1,11 @@
+# LedgerLine — local-only tools (notebooks, seed data, tests). Render does NOT install these.
+# Install with: pip install -r requirements-dev.txt
+# Versions checked on PyPI 2026-11-16.
+
+-r requirements.txt     # include everything the app needs
+
+pandas==3.1.1           # cleaning notebook + Insights analysis
+plotly==7.1.0           # Python charts and the Scattermap map in notebooks (the app itself uses Plotly.js from a CDN)
+jupyterlab==4.6.6       # runs the .ipynb notebooks
+openpyxl==3.1.5         # lets pandas write .xlsx files for the Excel pivot report
+pytest==9.2.0           # tests (secondary scope, Fri)

@@ -1,9 +1,23 @@
 # Problem
 
+## Problem Statement
+Piano teachers can't find students' day-to-day practice info because most practice happens at home between weekly lessons, where the teacher can't see.
+Today they ask students, which may lead to wasted class time figuring out what students have done instead of teaching.
+LedgerLine allows students to log daily practice on the same day so that piano teachers can know which pieces need work and can track trends and practice streaks on the dashboard.
+
 ## Brief
 Piano teachers can't see what students actually practice between lessons. LedgerLine: teacher assigns pieces in order and tracks each through 6 stages; students log practice; teacher sees a dashboard and sends a weekly progress card. Studio-management tools (e.g. My Music Staff, $16.95/mo + $4.95 per extra teacher) focus on scheduling and billing; they do include a basic practice log (time + notes) and generic progress labels, but LedgerLine is practice-first: per-piece logs, a 6-stage path per piece, dashboard charts and a shareable weekly progress card.
 
-## Stakeholders and Business Plan
+## Stakeholders
+| Stakeholder | Pays? | Uses daily? | Main benefit | Main concern |
+|---|---|---|---|---|
+| Piano teacher | Yes, Teacher Studio ~$8/mo | Yes, dashboard + notes | Lessons start with real data | Setup time; student buy-in |
+| Student (has a teacher) | No, paid by teacher | Yes, practice log | Track and log daily practice, efficient lessons| Logging convenience |
+| Self-taught student | Yes, Student Solo ~$3/mo | Yes, dashboard + notes | Track and log daily practice, plan for future practice | Convenience, extra features |
+| Parent | No, unless self-taught student is minor | Not daily. Weekly progress card (shared link) | Efficient classes, make sure child is practicing | Child's data privacy, ease of access |
+| Practice Insights buyer | Yes, per report (price TBD) | No | Check trends, view data dashboard as non-teacher | Data type, readability, presentability, sample size/representativeness |
+
+## Pricing Plan
 | Plan | Price | For |
 |---|---|---|
 | Free | $0 | 1 teacher + up to 3 students, or a solo student (basic logs) |
