@@ -24,6 +24,7 @@ Piano teachers can't see what students actually practice between lessons. Ledger
 | Student Solo | ~$3/mo | Self-taught learners: goals, streaks, charts |
 | Teacher Studio | ~$8/mo | Unlimited students, assignments, dashboard, progress cards |
 | Practice Insights | per report (price TBD Thu) | Anonymized, aggregated, opt-in trends (10+ students per group) |
+
 Differentiator: stage-based progress per piece + same-day, per-piece logs + a weekly progress card parents can see. Logs are still self-reported: LedgerLine replaces week-later recall, it does not verify practice. Exact tagline to be finalized in Thu pricing/landing copy.
 Most marketable feature: the weekly progress card (also helps students who can't take notes during lessons).
 Data note: selling identifiable student data is a legal and trust risk (SOPIPA-style state laws, COPPA for under-13s). Insights are aggregated and opt-in only.
