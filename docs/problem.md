@@ -6,7 +6,7 @@ Today they ask students, which may lead to wasted class time figuring out what s
 LedgerLine allows students to log daily practice on the same day so that piano teachers can know which pieces need work and can track trends and practice streaks on the dashboard.
 
 ## Brief
-Piano teachers can't see what students actually practice between lessons. LedgerLine: teacher assigns pieces in order and tracks each through 6 stages; students log practice; teacher sees a dashboard and sends a weekly progress card. Studio-management tools (e.g. My Music Staff, $16.95/mo + $4.95 per extra teacher) focus on scheduling and billing; they do include a basic practice log (time + notes) and generic progress labels, but LedgerLine is practice-first: per-piece logs, a 6-stage path per piece, dashboard charts and a shareable weekly progress card.
+Piano teachers can't see what students actually practice between lessons. LedgerLine: teacher assigns pieces in order and tracks each through 6 stages; students log practice; teacher sees a dashboard and sends a weekly progress card. Studio-management tools (e.g. My Music Staff, $16.95/mo + $4.95 per extra teacher) focus on scheduling and billing; they do include a basic practice log (time + notes) and generic progress labels, but LedgerLine is practice-first: per-piece logs, a 6-stage path per piece, dashboard charts and a shareable weekly progress card for students and parents.
 
 ## Stakeholders
 | Stakeholder | Pays? | Uses daily? | Main benefit | Main concern |
