@@ -13,7 +13,7 @@ Piano teachers can't see what students actually practice between lessons. Ledger
 |---|---|---|---|---|
 | Piano teacher | Yes, Teacher Studio ~$8/mo | Yes, dashboard + notes | Lessons start with real data | Setup time; student buy-in |
 | Student (has a teacher) | No, paid by teacher | Yes, practice log | Track and log daily practice, efficient lessons| Logging convenience |
-| Self-taught student | Yes, Student Solo ~$3/mo | Yes, dashboard + notes | Track and log daily practice, plan for future practice | Convenience, extra features |
+| Self-taught student | Yes, Student Solo ~$3-5/mo | Yes, dashboard + notes | Track and log daily practice, plan for future practice | Convenience, extra features |
 | Parent | No, unless self-taught student is minor | Not daily. Weekly progress card (shared link) | Efficient classes, make sure child is practicing | Child's data privacy, ease of access |
 | Practice Insights buyer | Yes, per report (price TBD) | No | Check trends, view data dashboard as non-teacher | Data type, readability, presentability, sample size/representativeness |
 
@@ -21,7 +21,7 @@ Piano teachers can't see what students actually practice between lessons. Ledger
 | Plan | Price | For |
 |---|---|---|
 | Free | $0 | 1 teacher + up to 3 students, or a solo student (basic logs) |
-| Student Solo | ~$3/mo | Self-taught learners: goals, streaks, charts |
+| Student Solo | ~$3-5/mo | Self-taught learners: goals, streaks, charts |
 | Teacher Studio | ~$8/mo | Unlimited students, assignments, dashboard, progress cards |
 | Practice Insights | per report (price TBD Thu) | Anonymized, aggregated, opt-in trends (10+ students per group) |
 
@@ -58,7 +58,7 @@ Data note: selling identifiable student data is a legal and trust risk (SOPIPA-s
 ## Tool comparison
 | | Paper / asking | My Music Staff | MakeMusic Cloud | LedgerLine |
 |---|---|---|---|---|
-| Price | **Free**| **$16.95/mo** + **$4.95** per extra teacher| **$39.99/yr** per teacher, **$13.99/yr** per student, with discounts shown for **20+** subscriptions. **Free** for individuals with basic red/green note assessments and composing| **Free** for basic logging, **$3/mo** for self-taught, **$8/mo** for teacher studios, by report (price TBD) for Practice Insights
+| Price | **Free**| **$16.95/mo** + **$4.95** per extra teacher| **$39.99/yr** per teacher, **$13.99/yr** per student, with discounts shown for **20+** subscriptions. **Free** for individuals with basic red/green note assessments and composing| **Free** for basic logging, **$3-5/mo** for self-taught, **$8/mo** for teacher studios, by report (price TBD) for Practice Insights
 | Main purpose | Easy notetaking| **Studio admin:** scheduling, attendance, billing and lesson notes for private teachers| **School music classrooms:** assigned practice with automatic note assessment| **Practice tracking for private piano studios**|
 | Practice log | Physical, may be undetailed, may be lost| Students log time **manually** or with a timer, add notes, upload files<sup>1</sup>| **Automatic**, counting **only** time spent playing or recording in the app<sup>2</sup>| Students log minutes per piece, **the same day**, and notes about each piece|
 | Per-piece stages | Only if teacher writes them| **Generic** labels: In-Progress, Completed, Requested, and more| Not found| **6 stages**, from learning notes to performance ready|
