@@ -19,5 +19,5 @@ One entry per block: what got done, what's left, any blockers, confidence (1–5
   - Render + Vercel accounts
   - README skeleton sections
 - Blockers: none
-- Confidence: ?/5
+- Confidence: 5/5
 - Commit: `20235f6` "Start project setup."
