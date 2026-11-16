@@ -25,3 +25,10 @@ One entry per block: what got done, what's left, any blockers, confidence (1–5
 2026-11-16 10:30 | Cloud/DevOps | done: repo, .gitignore (.env verified ignored), venv, README skeleton, Projects board, Supabase/Render/Vercel accounts | blocked: none (Render maintenance Tue 7–7:30pm MST blocks deploys only) | next: problem framing + governance
 
 2026-11-16 11:55 | Product & Business Strategist | done: problem statement, stakeholders, MoSCoW requirements, tool comparison (verified prices + sources), data-source log; plan research + differentiator corrected | blocked: none | next: data-quality checklist + privacy/bias reflection (carry-over), then DB design
+
+2026-11-16 15:15 | Database Designer | done: 3NF design (16 tables), Lucid ERD v2, schema.sql with constraints/triggers/RLS + local tests | blocked: none | next: run schema on Supabase, data dictionary (+Future: studio_members/enrollments), 3 join queries
+
+## Later
+- Multiple teachers per student → enrollments(student_id, teacher_id, started_on, ended_on); also keeps history when a student switches teachers
+- Multiple teachers per studio → studio_members(studio_id, user_id, role); pricing decision in Strategist chat
+- Preset assignment UI (tables exist; build after core)
