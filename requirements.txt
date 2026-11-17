@@ -5,3 +5,5 @@ flask==3.1.3            # web framework; brings Werkzeug (password hashing) and 
 psycopg[binary]==3.3.9  # PostgreSQL driver for Supabase; [binary] = prebuilt, no compiler needed on Windows
 python-dotenv==1.2.4    # loads DATABASE_URL and SECRET_KEY from .env when running locally
 gunicorn==27.0.1        # production web server Render runs: gunicorn "app.app:app"
+
+tzdata==2026.6
