@@ -28,6 +28,8 @@ One entry per block: what got done, what's left, any blockers, confidence (1–5
 
 2026-11-16 15:15 | Database Designer | done: 3NF design (16 tables), Lucid ERD v2, schema.sql with constraints/triggers/RLS + local tests | blocked: none | next: run schema on Supabase, data dictionary (+Future: studio_members/enrollments), 3 join queries
 
+2026-11-16 21:30 | data-analyst | done: generator spec docs/data-generator.md (9 sections, decisions locked) | blocked: none | next: Lucid flowchart from spec, then seed.py + import own logs + row-count checks
+
 ## Later
 - Multiple teachers per student → enrollments(student_id, teacher_id, started_on, ended_on); also keeps history when a student switches teachers
 - Multiple teachers per studio → studio_members(studio_id, user_id, role); pricing decision in Strategist chat
