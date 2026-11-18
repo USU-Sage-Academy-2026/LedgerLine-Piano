@@ -21,6 +21,8 @@ def role_required(role): # usually require teacher role
     def decorator(view):
         @functools.wraps(view)
         def wrapped(**kwargs):
+            if "user_id" not in session:
+                return redirect(url_for("auth.login"))
             if session.get("role") != role:
                 abort(403) # forbidden
             return view(**kwargs)
@@ -55,9 +57,5 @@ def logout():
     flash("You have been logged out.") # generic ahh logout message
     return redirect(url_for("auth.login")) # redirects to the login page after logging out
 
-@bp.route("/teacher-only", methods=["GET"]) # only get request
-@role_required("teacher") # test teacher only route
-def teacher_only():
-    """Temporary test route; delete after testing."""
-    return "teacher ok"
+
 
