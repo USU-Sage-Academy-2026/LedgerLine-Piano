@@ -11,7 +11,8 @@ def create_app():
 
     from . import auth
     app.register_blueprint(auth.bp)
-
+    from . import teacher
+    app.register_blueprint(teacher.bp)
     @app.route("/health")
     def health():
         """does it work?"""
