@@ -1,0 +1,27 @@
+<!doctype html>
+<title>Register – LedgerLine</title>
+<h1>Register</h1>
+{% for message in get_flashed_messages() %}<p>{{ message }}</p>{% endfor %}
+<form method="post">
+  <label>Name <input name="display_name" value="{{ form.display_name }}" required></label><br>
+  <label>Email <input type="email" name="email" value="{{ form.email }}" required></label><br>
+  <label>Password <input type="password" name="password" minlength="{{ MIN_PASSWORD_LENGTH }}" required></label><br>
+  <p>I am a:
+    <label><input type="radio" name="role" value="teacher" {% if form.role == 'teacher' %}checked{% endif %} required> Teacher</label>
+    <label><input type="radio" name="role" value="student" {% if form.role == 'student' %}checked{% endif %}> Student</label>
+  </p>
+  <fieldset>
+    <legend>Teachers only</legend>
+    <label>Studio name <input name="studio_name" value="{{ form.studio_name }}"></label><br>
+    <label>City
+      <select name="city_id">
+        <option value="">-- choose --</option>
+        {% for city in cities %}
+          <option value="{{ city.id }}" {% if form.city_id == city.id|string %}selected{% endif %}>{{ city.name }}, {{ city.state }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </fieldset>
+  <button type="submit">Create account</button>
+</form>
+<p><a href="{{ url_for('auth.login') }}">Already registered? Log in</a></p>

@@ -6,4 +6,5 @@ psycopg[binary]==3.3.9  # PostgreSQL driver for Supabase; [binary] = prebuilt, n
 python-dotenv==1.2.4    # loads DATABASE_URL and SECRET_KEY from .env when running locally
 gunicorn==27.0.1        # production web server Render runs: gunicorn "wsgi:app"
 
-tzdata==2026.6
+tzdata==2026.6          # timezone data for the server (UTC) and for the app (America/New_York)
+email-validator==2.3.0  # validate email addresses in forms

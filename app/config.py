@@ -8,4 +8,7 @@ class Config:
     """Config variables"""
     SECRET_KEY = os.environ["SECRET_KEY"]
     DATABASE_URL = os.environ["DATABASE_URL"]
+
     INSIGHTS_MIN_GROUP = 10
+
+    MIN_PASSWORD_LENGTH = 15  # NIST SP 800-63B-4: single-factor passwords

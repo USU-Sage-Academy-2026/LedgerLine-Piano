@@ -1,11 +1,49 @@
-"""Register, login and logout routes."""
-from flask import (Blueprint, abort, flash, redirect, render_template,
+"""Controlls user registration, login, and logout.
+Registration requries all forms to be filled out, and checks for valid email and minimum password length. 
+Login checks for correct email and password. 
+Logout clears the session."""
+from flask import (Blueprint, abort, current_app, flash, redirect, render_template,
                    request, session, url_for)
-from werkzeug.security import check_password_hash #basic security uses password hashing
+from werkzeug.security import generate_password_hash, check_password_hash #basic security uses password hashing
 from .db import get_db
 import functools
+import psycopg
+from email_validator import validate_email, EmailNotValidError
+
 
 bp = Blueprint("auth", __name__, url_prefix="/auth")
+
+def is_valid_email(email):
+    """True if the address has valid syntax. No DNS lookup (see notes)."""
+    try:
+        validate_email(email, check_deliverability=False)
+        return True
+    except EmailNotValidError:
+        return False
+
+
+def create_account(display_name, email, password, role, studio_name=None, city_id=None):
+    """Insert a user plus their students or studios row atomically. Returns the new user id."""
+    db = get_db()
+    password_hash = generate_password_hash(password) # password hashing
+    with db.transaction(): # allows for easier rollback if something goes wrong (eg bad city_id, but user info works)
+        row = db.execute(
+            """
+            INSERT INTO users (email, password_hash, display_name, role)
+            VALUES (%s, %s, %s, %s)
+            RETURNING id
+            """,
+            (email, password_hash, display_name, role),
+        ).fetchone() # send to db
+        user_id = row["id"]
+        if role == "student": # role logic
+            db.execute("INSERT INTO students (user_id) VALUES (%s)", (user_id,))
+        else:
+            db.execute(
+                "INSERT INTO studios (teacher_id, city_id, name) VALUES (%s, %s, %s)",
+                (user_id, city_id, studio_name),
+            )
+    return user_id # log in automatically, no need to retype password
 
 def login_required(view): # wrapper function to ensure that the user is logged in before accessing certain routes
     """Send anonymous users to the login page."""
@@ -29,6 +67,52 @@ def role_required(role): # usually require teacher role
         return wrapped
     return decorator
 
+
+@bp.route("/register", methods=["GET", "POST"])
+def register():
+    """GET: show the form. POST: validate, create the account, log the user in."""
+    min_pw = current_app.config["MIN_PASSWORD_LENGTH"] # get the minimum password length from the config
+    form = request.form if request.method == "POST" else {}
+    if request.method == "POST":
+        display_name = form.get("display_name", "").strip() # info from form is prepared
+        email = form.get("email", "").strip().lower()
+        password = form.get("password", "")
+        role = form.get("role", "")
+        studio_name = form.get("studio_name", "").strip()
+        city_id = form.get("city_id", "")
+
+        error = None
+        if role not in ("teacher", "student"): # force role
+            error = "Choose teacher or student."
+        elif not display_name or not email or not password: # force required fields
+            error = "Name, email and password are required."
+        elif not is_valid_email(email): # force valid email
+            error = "Enter a valid email address."
+        elif len(password) < min_pw: # force minimum password length
+            error = f"Password must be at least {min_pw} characters."
+        elif role == "teacher" and (not studio_name or not city_id.isdigit()): # force required fields for teachers
+            error = "Teachers need a studio name and a city."
+
+        if error is None:
+            try:
+                user_id = create_account(
+                    display_name, email, password, role,
+                    studio_name if role == "teacher" else None,
+                    int(city_id) if role == "teacher" else None,
+                )
+            except psycopg.errors.UniqueViolation: # prevent runtime errors
+                error = "That email is already registered."
+            except psycopg.errors.ForeignKeyViolation:
+                error = "Choose a city from the list."
+            else:
+                session.clear()
+                session["user_id"] = user_id
+                session["role"] = role
+                return redirect(url_for("health"))
+        flash(error) # shows user what went wrong
+
+    cities = get_db().execute("SELECT id, name, state FROM cities ORDER BY name").fetchall()
+    return render_template("auth/register.html", form=form, cities=cities)
 
 @bp.route("/login", methods=["GET", "POST"]) # ensures both get and post requests work
 def login():
