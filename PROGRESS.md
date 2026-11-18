@@ -38,6 +38,8 @@ One entry per block: what got done, what's left, any blockers, confidence (1–5
 
 2026-11-18 11:20 | Flask Backend | done: register (teacher+student, one transaction, email-validator, 15-char min), teacher dashboard + student list | blocked: none | next: student practice log form; add default tags to teacher signup in tags block
 
+2026-11-18 13:35 | Flask Backend | done: student log form (INSERT...SELECT ownership, Denver→UTC times, 7-day window) | blocked: none | next: dashboard chart data
+
 ## Later
 - Multiple teachers per student → enrollments(student_id, teacher_id, started_on, ended_on); also keeps history when a student switches teachers
 - Multiple teachers per studio → studio_members(studio_id, user_id, role); pricing decision in Strategist chat
