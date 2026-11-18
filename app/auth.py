@@ -11,7 +11,7 @@ import psycopg
 from email_validator import validate_email, EmailNotValidError
 
 
-bp = Blueprint("auth", __name__, url_prefix="/auth")
+bp = Blueprint("auth", __name__, url_prefix="/auth") # auth blueprint for all logins
 
 def is_valid_email(email):
     """True if the address has valid syntax. No DNS lookup (see notes)."""
@@ -100,6 +100,7 @@ def register():
                     studio_name if role == "teacher" else None,
                     int(city_id) if role == "teacher" else None,
                 )
+                get_db().commit() # commit the transaction if everything is successful
             except psycopg.errors.UniqueViolation: # prevent runtime errors
                 error = "That email is already registered."
             except psycopg.errors.ForeignKeyViolation:

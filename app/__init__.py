@@ -13,6 +13,8 @@ def create_app():
     app.register_blueprint(auth.bp)
     from . import teacher
     app.register_blueprint(teacher.bp)
+    from app import student
+    app.register_blueprint(student.bp)
     @app.route("/health")
     def health():
         """does it work?"""

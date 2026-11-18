@@ -22,4 +22,15 @@ def dashboard():
     ).fetchone()
     if studio is None:
         abort(404) # shouldn't happen since acc creation requires a studio
-    return render_template("teacher/dashboard.html", studio=studio)
+    students = get_db().execute( # find all students for this teacher's studio, ordered by name
+        """
+        SELECT s.id AS student_id, u.display_name, u.email
+        FROM students s
+        JOIN users u ON u.id = s.user_id
+        JOIN studios st ON st.id = s.studio_id
+        WHERE st.teacher_id = %s
+        ORDER BY u.display_name
+        """,
+        (session["user_id"],),
+    ).fetchall()
+    return render_template("teacher/dashboard.html", studio=studio, students=students)

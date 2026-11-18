@@ -2,4 +2,13 @@
 <title>Dashboard – LedgerLine</title>
 <h1>{{ studio.name }}</h1>
 <p>{{ studio.city }}, {{ studio.state }}</p>
+<h2>Students ({{ students|length }})</h2>
+<ul>
+  {% for student in students %}
+    <li>{{ student.display_name }}: {{ student.email }}</li>
+  {% else %}
+    <!-- if there are no students, jinja shows this message -->
+    <li>No students yet.</li>
+  {% endfor %}
+</ul>
 <p><a href="{{ url_for('auth.logout') }}">Log out</a></p>

@@ -1,0 +1,24 @@
+<!doctype html>
+<title>Log practice – LedgerLine</title>
+<h1>Log practice</h1>
+{% for message in get_flashed_messages() %}<p>{{ message }}</p>{% endfor %}
+{% if pieces %}
+<form method="post">
+  <label>Piece
+    <select name="student_piece_id" required>
+      {% for piece in pieces %}
+        <option value="{{ piece.student_piece_id }}" {% if form.student_piece_id == piece.student_piece_id|string %}selected{% endif %}>{{ piece.seq_order }}. {{ piece.title }}</option>
+      {% endfor %}
+    </select>
+  </label><br>
+  <label>Minutes <input type="number" name="minutes" min="1" max="300" value="{{ form.minutes }}" required></label><br>
+  <details>
+    <summary>Practiced earlier?</summary>
+    <label>Started at <input type="datetime-local" name="earlier_local" value="{{ form.earlier_local }}"></label>
+  </details>
+  <label>Note <textarea name="note" maxlength="500">{{ form.note }}</textarea></label><br>
+  <button type="submit">Save</button>
+</form>
+{% else %}
+<p>No active pieces yet. Ask your teacher to assign one.</p>
+{% endif %}

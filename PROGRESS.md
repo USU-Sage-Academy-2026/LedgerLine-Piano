@@ -34,6 +34,10 @@ One entry per block: what got done, what's left, any blockers, confidence (1–5
 
 2026-11-18 08:00 | data-analyst | done: seed run on Supabase, 3 row-count checks match spec (10 teachers, 112 students, 8/4 demo, 6455 logs 9/24-11/18) | blocked: none | next: chart data for dashboard
 
+2026-11-18 09:35 | Flask Backend Developer | done: app factory, config, db.py (get_db/close_db), login, logout, login_required, role_required; seeded teacher + student login verified | blocked: none | next: register (both roles, one transaction), then teacher flows
+
+2026-11-18 11:20 | Flask Backend | done: register (teacher+student, one transaction, email-validator, 15-char min), teacher dashboard + student list | blocked: none | next: student practice log form; add default tags to teacher signup in tags block
+
 ## Later
 - Multiple teachers per student → enrollments(student_id, teacher_id, started_on, ended_on); also keeps history when a student switches teachers
 - Multiple teachers per studio → studio_members(studio_id, user_id, role); pricing decision in Strategist chat
