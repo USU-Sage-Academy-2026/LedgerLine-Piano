@@ -1,0 +1,9 @@
+<!doctype html> 
+<!-- basic test login -->
+<title>Log in · LedgerLine</title>
+{% for msg in get_flashed_messages() %}<p>{{ msg }}</p>{% endfor %}
+<form method="post">
+  <label>Email <input name="email" type="email" required></label>
+  <label>Password <input name="password" type="password" required></label>
+  <button>Log in</button>
+</form>
