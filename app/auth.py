@@ -21,6 +21,11 @@ def is_valid_email(email):
     except EmailNotValidError:
         return False
 
+def home_url_for(role):
+    """URL each role lands on after logging in or registering."""
+    if role == "teacher":
+        return url_for("teacher.dashboard")
+    return url_for("student.log_practice")
 
 def create_account(display_name, email, password, role, studio_name=None, city_id=None):
     """Insert a user plus their students or studios row atomically. Returns the new user id."""
@@ -109,7 +114,7 @@ def register():
                 session.clear()
                 session["user_id"] = user_id
                 session["role"] = role
-                return redirect(url_for("health"))
+                return redirect(home_url_for(role))
         flash(error) # shows user what went wrong
 
     cities = get_db().execute("SELECT id, name, state FROM cities ORDER BY name").fetchall()
@@ -131,7 +136,7 @@ def login():
             session.clear()
             session["user_id"] = user["id"]
             session["role"] = user["role"]
-            return redirect(url_for("health")) # redirects to the health check route after successful login for now at least
+            return redirect(home_url_for(role)) # redirect to home page
     return render_template("auth/login.html") # renders the login form if the request method is GET or if the login failed
 
 @bp.route("/logout", methods=["GET"]) # only get request
