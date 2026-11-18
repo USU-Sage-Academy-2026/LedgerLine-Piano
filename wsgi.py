@@ -1,4 +1,5 @@
-import flask
-import app
+# Gunicorn WSGI entry point for render, this links the web server to the flask app
 
-a=app.create_app()
+from app import create_app
+
+app = create_app()
