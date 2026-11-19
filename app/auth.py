@@ -76,7 +76,7 @@ def role_required(role): # usually require teacher role
 @bp.route("/register", methods=["GET", "POST"])
 def register():
     """GET: show the form. POST: validate, create the account, log the user in."""
-    min_pw = current_app.config["MIN_PASSWORD_LENGTH"] # get the minimum password length from the config
+    minlength = current_app.config["MIN_PASSWORD_LENGTH"] # get the minimum password length from the config
     form = request.form if request.method == "POST" else {}
     if request.method == "POST":
         display_name = form.get("display_name", "").strip() # info from form is prepared
@@ -93,8 +93,8 @@ def register():
             error = "Name, email and password are required."
         elif not is_valid_email(email): # force valid email
             error = "Enter a valid email address."
-        elif len(password) < min_pw: # force minimum password length
-            error = f"Password must be at least {min_pw} characters."
+        elif len(password) < minlength: # force minimum password length
+            error = f"Password must be at least {minlength} characters."
         elif role == "teacher" and (not studio_name or not city_id.isdigit()): # force required fields for teachers
             error = "Teachers need a studio name and a city."
 
@@ -136,7 +136,7 @@ def login():
             session.clear()
             session["user_id"] = user["id"]
             session["role"] = user["role"]
-            return redirect(home_url_for(role)) # redirect to home page
+            return redirect(home_url_for(session["role"])) # redirect to home page
     return render_template("auth/login.html") # renders the login form if the request method is GET or if the login failed
 
 @bp.route("/logout", methods=["GET"]) # only get request

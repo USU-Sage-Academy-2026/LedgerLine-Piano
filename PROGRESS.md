@@ -42,6 +42,8 @@ One entry per block: what got done, what's left, any blockers, confidence (1–5
 
 2026-11-18 14:45 | Flask Backend | done: weekly-minutes + daily-studio-minutes APIs (LEFT JOIN from students/days, Denver weeks) | blocked: none | next: tags (incl. default tags on teacher signup), then deploy prep
 
+2026-11-18 14:40 | Flask Backend | done: register, teacher dashboard + student list, student log form, 2 chart APIs, role redirect | blocked: none | next: tags (+ default tags on teacher signup), then deploy prep for 8:25 PM
+
 ## Later
 - Multiple teachers per student → enrollments(student_id, teacher_id, started_on, ended_on); also keeps history when a student switches teachers
 - Multiple teachers per studio → studio_members(studio_id, user_id, role); pricing decision in Strategist chat
