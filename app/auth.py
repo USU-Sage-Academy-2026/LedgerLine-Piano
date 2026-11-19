@@ -6,6 +6,7 @@ from flask import (Blueprint, abort, current_app, flash, redirect, render_templa
                    request, session, url_for)
 from werkzeug.security import generate_password_hash, check_password_hash #basic security uses password hashing
 from .db import get_db
+from . import queries
 import functools
 import psycopg
 from email_validator import validate_email, EmailNotValidError
@@ -71,6 +72,31 @@ def role_required(role): # usually require teacher role
             return view(**kwargs)
         return wrapped
     return decorator
+
+
+def current_student_or_404():
+    """The logged-in student's students row (id, weekly_goal_minutes)."""
+    student = get_db().execute(
+        queries.STUDENT_FOR_USER, {"user_id": session["user_id"]}
+    ).fetchone()
+    if student is None:
+        abort(404)
+    return student
+
+
+def teacher_student_or_404(student_id):
+    """Return the student only if they're in the logged-in teacher's studio.
+
+    404 (not 403) so a teacher can't tell other studios' student ids exist.
+    The DB connection bypasses RLS, so this is the only ownership guard.
+    """
+    student = get_db().execute(
+        queries.TEACHER_STUDENT,
+        {"student_id": student_id, "teacher_id": session["user_id"]},
+    ).fetchone()
+    if student is None:
+        abort(404)
+    return student
 
 
 @bp.route("/register", methods=["GET", "POST"])

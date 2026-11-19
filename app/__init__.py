@@ -1,5 +1,5 @@
 # register app and blueprints here
-from flask import Flask, app
+from flask import Flask
 from .config import Config
 from . import db
 
@@ -17,6 +17,8 @@ def create_app():
     app.register_blueprint(student.bp)
     from app import api
     app.register_blueprint(api.bp)
+    from app import card
+    app.register_blueprint(card.bp)
 
 
     @app.route("/health")
