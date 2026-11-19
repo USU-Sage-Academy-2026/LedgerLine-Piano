@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}LedgerLine{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;700&family=Newsreader:opsz,wght@6..72,500&display=swap">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <a class="wordmark" href="{{ url_for('auth.login') }}">LedgerLine</a>
+    {% if session.role %}
+    <nav aria-label="Main">
+      {% if session.role == 'teacher' %}
+        <!-- enforces that charts are only rendered for the right roles-->
+        <a href="{{ url_for('teacher.dashboard') }}" {% if request.endpoint == 'teacher.dashboard' %}aria-current="page"{% endif %}>Dashboard</a>
+      {% else %}
+        <a href="{{ url_for('student.log_practice') }}" {% if request.endpoint == 'student.log_practice' %}aria-current="page"{% endif %}>Log</a>
+      {% endif %}
+      <a href="{{ url_for('auth.logout') }}">Log out</a>
+    </nav>
+    {% endif %}
+  </header>
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <div class="flashes" role="status">
+      {% for m in messages %}<p>{{ m }}</p>{% endfor %}
+    </div>
+    {% endif %}
+  {% endwith %}
+  <main id="main">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

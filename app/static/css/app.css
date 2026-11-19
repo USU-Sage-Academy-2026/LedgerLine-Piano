@@ -1,0 +1,70 @@
+/* ---------- tokens: light-dark(light value, dark value) ---------- */
+:root {
+  color-scheme: light dark;            /* follow the device setting */
+  --bg:      light-dark(#F6F7F5, #000000);
+  --surface: light-dark(#FFFFFF, #0F141C);
+  --text:    light-dark(#132238, #E7EDF4);
+  --muted:   light-dark(#4B5A6B, #A6B3C2);
+  --blue:    light-dark(#1F3B63, #9BBDE6);
+  --teal:    light-dark(#0E6F68, #5CC8B9);
+  --on-teal: light-dark(#FFFFFF, #000000);
+  --border:  light-dark(#D9DED9, #263142);
+  --input:   light-dark(#76838F, #6E809B);
+  --error:   light-dark(#B42318, #FF8673);
+  --font-ui: "Atkinson Hyperlegible Next", system-ui, sans-serif;
+  --font-display: "Newsreader", Georgia, serif;
+  --radius: 10px;
+  --space: 16px;
+}
+:root[data-theme="light"] { color-scheme: light; }   /* toggle overrides the device */
+:root[data-theme="dark"]  { color-scheme: dark; }
+
+/* ---------- base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 1rem/1.5 var(--font-ui);
+}
+h1, h2 { font-family: var(--font-display); font-weight: 500; color: var(--blue); line-height: 1.2; }
+a { color: var(--teal); }
+:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
+main { max-width: 960px; margin: 0 auto; padding: var(--space); }
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px var(--space);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.wordmark {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 500;
+  color: var(--blue);
+  text-decoration: none;
+  letter-spacing: -0.01em;
+}
+.topbar nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  color: var(--text);
+  text-decoration: none;
+}
+.topbar nav a[aria-current="page"] {
+  font-weight: 700;
+  text-decoration: underline 2px var(--teal);
+  text-underline-offset: 4px;
+}
+.flashes p {
+  background: var(--surface);
+  border-left: 4px solid var(--teal);
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  margin: 0 0 8px;
+}

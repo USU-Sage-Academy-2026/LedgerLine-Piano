@@ -46,6 +46,8 @@ One entry per block: what got done, what's left, any blockers, confidence (1–5
 
 2026-11-19 14:05 | Database Designer | done: migrations 002+003 applied, ERD v3, data dictionary, queries a–g verified on live data | blocked: seed needs weekly_goal_minutes, preset tags, invites, share link | next: explain-back on queries; Insights aggregate queries (10+ opted-in rule)
 
+2026-11-19 15:10 | data-analyst | done: seed adds weekly goals, 3 pending invites (1 to solo login), 1 share link; spec updated | blocked: none | next: cleaning notebook + Insights queries
+
 ## Later
 - Multiple teachers per student → enrollments(student_id, teacher_id, started_on, ended_on); also keeps history when a student switches teachers
 - Multiple teachers per studio → studio_members(studio_id, user_id, role); pricing decision in Strategist chat
