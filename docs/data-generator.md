@@ -20,8 +20,10 @@ Tables filled, in fill order:
 12. lesson_notes
 13. student_tags
 14. piece_tags
+15. invites
+16. share_links
 
-Not filled by the generator (seeded in schema.sql): stages, rcm_levels.
+Not filled by the generator: stages, rcm_levels (seeded in schema.sql), goals.
 
 ## 2. Labeling generated data
 To label generated data, we will use @example.com emails and set `users.is_generated = true`. This will apply to both students and teachers (studios are labeled through their teacher), and will be used for all demo accounts, excluding my personal and definitely not exaggerated personal account.
@@ -41,13 +43,14 @@ Rules:
 - A group is only shown if it has 10 or more opted-in students.
 
 ## 4. Volumes
-We will assume that 50% of all students opt in to data collection. For 4 bands, we will need 80 students minimum. For safety, we will generate 100 students: 25 per band, with at least 12 opted in per band. The 12 demo students do not count toward the 100 (112 students total).
+We will assume that 50% of all students opt in to data collection. For 4 bands, we will need 80 students minimum. For safety, we will generate 100 students: 25 per band, with at least 12 opted in per band. The 12 demo students do not count toward the 100. Plus 1 Student Solo login (`solo.student@example.com`, no studio) for the invite demo: 113 generated students, 10 teachers.
 
 ## 5. Generation order
 Order follows foreign keys: a table is filled only after every table it references.
-- Demo teachers and their studios are created first, so their ids and logins stay the same on every run.
+- Demo teachers and their studios are created first, so their logins (`demo.teacher1@example.com`, `demo.teacher2@example.com`) stay the same on every run. Ids change: identity ids keep counting after a delete.
 - Everything runs in one transaction (all or nothing).
-- Re-run: first `DELETE FROM users WHERE is_generated` (cascades to studios, students, student_pieces, logs, notes, tags). Cities and pieces stay; inserts skip existing rows (`ON CONFLICT DO NOTHING`).
+- Re-run: first `DELETE FROM users WHERE is_generated` (cascades to studios, students, student_pieces, logs, notes, tags, invites, share links). Cities and pieces stay; inserts skip existing rows (`ON CONFLICT DO NOTHING`). Never TRUNCATE: it would also empty Theo's real rows.
+- Safety: the script stops if a real student belongs to a generated studio.
 
 | Table | Comes after | Why |
 |---|---|---|
@@ -65,6 +68,8 @@ Order follows foreign keys: a table is filled only after every table it referenc
 | lesson_notes | students | `student_id` |
 | student_tags | students, tags | both halves of the key |
 | piece_tags | pieces, tags | both halves of the key |
+| invites | studios | `studio_id` |
+| share_links | students, users | `student_id`, `created_by` |
 
 ## 6. Realism rules
 - Lessons: each student has one fixed weekday lesson.
@@ -76,12 +81,16 @@ Order follows foreign keys: a table is filled only after every table it referenc
 - Practiced pieces: only in-progress pieces (started, not completed), 1–3 at a time.
 - Log notes: about 30% of logs get a note from a small list, including some funny ones.
 - Lesson notes: one per lesson, demo studios only.
+- Weekly goal (`students.weekly_goal_minutes`), by band, in steps of 30: Prep A–L2 120–210, L3–5 180–330, L6–8 270–480, L9–ARCT 420–630.
+- Demo extras (demo studio 1): 3 pending invites (2 to emails with no account, 1 to `solo.student@example.com` so accepting can be demoed) and 1 share link for its first student, this week's Monday, default 30-day expiry. The script prints the link as `/share/<token>`.
+- Share token: from Python's `secrets`, not the seeded random generator (the seed is public, so a seeded token could be recomputed). It changes on every run.
 - Logins: every generated user shares one password from `.env` (`DEMO_PASSWORD`), hashed with werkzeug. Fine because all data is fake; never a real password.
 
 ## 7. Reproducibility
 - Fixed random seed constant in `seed.py`.
 - Dates are relative: the 8 weeks end on the day the script runs. Same pattern every run, always current, never in the future.
 - Names: small hand-written lists of funny names; a very few reference famous composers.
+- Limit: one shared random generator, so date-dependent log generation shifts later students' pieces and logs between runs. Names, bands, opt-ins, tags, habits and goals stay the same. Do not re-run between recordings.
 
 ## 8. Checks after seeding
 Saved as SQL in `sql/queries.sql` and as asserts at the end of `seed.py`:
@@ -91,6 +100,9 @@ Saved as SQL in `sql/queries.sql` and as asserts at the end of `seed.py`:
 - No log earlier than its piece's `started_on`
 - Newest `stage_changes` row matches `current_stage_id`
 - Every generated user has `is_generated = true` and an @example.com email
+- Every generated student has a weekly goal
+- Row counts include invites (3) and share_links (1)
+- The band rule as SQL is written Thursday with the Insights queries
 
 ## 9. Out of scope
-- Cleaning (Thursday notebook). The generator does write a separate messy CSV export for it (duplicates, blanks, text in number columns, an outlier like a 600-minute log); the database stays clean for the demo.
+- Cleaning (Thursday notebook). The generator does write a separate messy CSV export for it (`data/practice_logs_messy.csv`, every row `source = generated`) with duplicates, blanks, text in number columns and an outlier like a 600-minute log; the database stays clean for the demo.

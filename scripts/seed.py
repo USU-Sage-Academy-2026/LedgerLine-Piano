@@ -10,6 +10,7 @@ import csv
 import os
 import unicodedata
 import random
+import secrets
 from datetime import date, datetime, time, timedelta
 from itertools import product
 from pathlib import Path
@@ -35,6 +36,10 @@ OPTED_IN_PER_BAND = 13               # spec: 12+; 13 of 25 = 52%, close to the 5
 SKIP_RATE = {"steady": 0.10, "average": 0.30, "sporadic": 0.55}
 SHAPES = ["taper", "taper_cram", "flat"]
 TAGGED_SHARE = 0.7                   # share of students with a preset level tag
+WEEKLY_GOAL = {1: (120, 210), 2: (180, 330), 3: (270, 480), 4: (420, 630)}  # minutes, by band
+SOLO_EMAIL = "solo.student@example.com"   # existing login with no studio, can accept an invite
+DEMO_INVITES = ["new.student.one@example.com", "new.student.two@example.com",
+                SOLO_EMAIL]                     # pending invites to demo studio 1
 
 # ---------- 2. Reference data ----------
 CITIES = [  # approximate city-centre coordinates
@@ -315,14 +320,26 @@ def insert_user(cur, name, email, role, pw_hash):
     return cur.fetchone()[0]
 
 
+def new_join_code(cur):
+    """Unused 6-digit studio join code, e.g. '048213'. Uses `secrets`, like share tokens."""
+    while True:
+        code = f"{secrets.randbelow(1_000_000):06d}"        # keeps leading zeros
+        cur.execute("SELECT 1 FROM studios WHERE join_code = %s", (code,))
+        if cur.fetchone() is None:
+            return code
+
+
 def insert_teacher(cur, rng, name, email, city_id, studio_name, pw_hash):
     """Teacher user + studio + preset level tags + extra tags + templates."""
     teacher_id = insert_user(cur, name, email, "teacher", pw_hash)
+    join_code = new_join_code(cur)
     cur.execute("""
-        INSERT INTO studios (teacher_id, city_id, name)
-        VALUES (%s, %s, %s)
+        INSERT INTO studios (teacher_id, city_id, name, join_code)
+        VALUES (%s, %s, %s, %s)
         RETURNING id
-    """, (teacher_id, city_id, studio_name))
+    """, (teacher_id, city_id, studio_name, join_code))
+    if email.startswith("demo."):
+        print(f"join code for {email}: {join_code}")
     studio_id = cur.fetchone()[0]
     tags = {}
     tag_rows = ([(level_tag_name(s), "student", LEVEL_TAG_COLOR) for s in range(1, 14)]
@@ -350,11 +367,13 @@ def insert_student(cur, rng, s, teacher, pieces_by_level, pw_hash, demo):
     """One student: user, student row, tags, pieces + stage history, logs, notes."""
     s["user_id"] = insert_user(cur, s["name"], s["email"], "student", pw_hash)
     cur.execute("""
-        INSERT INTO students (user_id, studio_id, parent_email, insights_opt_in)
-        VALUES (%s, %s, %s, %s)
+        INSERT INTO students
+          (user_id, studio_id, parent_email, insights_opt_in, weekly_goal_minutes)
+        VALUES (%s, %s, %s, %s, %s)
         RETURNING id
-    """, (s["user_id"], teacher["studio_id"], f"parent.{s['email']}", s["opt_in"]))
-    student_id = cur.fetchone()[0]
+    """, (s["user_id"], teacher["studio_id"], f"parent.{s['email']}", s["opt_in"],
+          s["weekly_goal"]))
+    student_id = s["student_id"] = cur.fetchone()[0]
 
     if s["tagged"]:
         cur.execute("INSERT INTO student_tags (student_id, tag_id) VALUES (%s, %s)",
@@ -423,6 +442,34 @@ def insert_student(cur, rng, s, teacher, pieces_by_level, pw_hash, demo):
     return logs
 
 
+def insert_solo_student(cur, pw_hash):
+    """One Student Solo login (studio_id NULL) so the invite-accept flow can be demoed."""
+    user_id = insert_user(cur, "Solo Sammy Sightreader", SOLO_EMAIL, "student", pw_hash)
+    cur.execute("""
+        INSERT INTO students (user_id, studio_id, insights_opt_in, weekly_goal_minutes)
+        VALUES (%s, NULL, false, %s)
+    """, (user_id, 150))
+
+
+def insert_demo_extras(cur, teacher, student):
+    """Pending invites + one share link for demo studio 1, so both can be demoed.
+
+    The token comes from `secrets`, not the seeded rng: the seed is in a public
+    repo, so a seeded token could be recomputed by anyone.
+    """
+    cur.executemany("""
+        INSERT INTO invites (studio_id, email)
+        VALUES (%s, %s)
+    """, [(teacher["studio_id"], email) for email in DEMO_INVITES])
+    token = secrets.token_urlsafe(32)                       # 43 characters
+    monday = TODAY - timedelta(days=TODAY.weekday())
+    cur.execute("""
+        INSERT INTO share_links (student_id, created_by, token, week_start)
+        VALUES (%s, %s, %s, %s)
+    """, (student["student_id"], teacher["user_id"], token, monday))
+    print(f"share link for {student['name']}: /share/{token}")
+
+
 # ---------- 5. Messy CSV for Thursday's cleaning notebook ----------
 def write_messy_csv(rng, all_logs):
     """Copy of generated logs with deliberate problems. The database stays clean."""
@@ -468,6 +515,12 @@ CHECKS = {
           LIMIT 1
         ) last ON true
         WHERE last.to_stage_id <> sp.current_stage_id""",
+    "generated students without a weekly goal": """
+        SELECT count(*)
+        FROM students s
+        JOIN users u ON u.id = s.user_id
+        WHERE u.is_generated
+          AND s.weekly_goal_minutes IS NULL""",
     "generated users without @example.com": """
         SELECT count(*) FROM users WHERE is_generated AND email NOT LIKE '%@example.com'""",
 }
@@ -478,7 +531,7 @@ def run_checks(cur, insights_students):
     for table in ["cities", "users", "studios", "students", "pieces", "tags",
                   "student_pieces", "stage_changes", "practice_logs",
                   "assignment_templates", "assignments", "lesson_notes",
-                  "student_tags", "piece_tags"]:
+                  "student_tags", "piece_tags", "invites", "share_links"]:
         cur.execute(f"SELECT count(*) FROM {table}")   # table names are ours, not user input
         print(f"{table:22} {cur.fetchone()[0]:>6}")
     for name, sql in CHECKS.items():
@@ -515,6 +568,8 @@ def main():
                 s["persona"] = rng.choice(list(SKIP_RATE))
                 s["shape"] = rng.choice(SHAPES)
                 s["lesson_weekday"] = rng.randrange(0, 6)   # Mon-Sat
+                lo, hi = WEEKLY_GOAL[s["band"]]
+                s["weekly_goal"] = rng.randrange(lo, hi + 1, 30)   # steps of 30 min
 
             teacher_specs = [("demo.teacher1@example.com", "Salt Lake City", demo[:8]),
                              ("demo.teacher2@example.com", "Provo", demo[8:])]
@@ -523,6 +578,7 @@ def main():
                 chunk = insights[k * 100 // 8:(k + 1) * 100 // 8]
                 teacher_specs.append((None, cities[k % len(cities)], chunk))
 
+            insert_solo_student(cur, pw_hash)
             all_logs = []
             for k, (email, city, students) in enumerate(teacher_specs):
                 tname = names[k]
@@ -534,6 +590,8 @@ def main():
                                               pw_hash, demo=email is not None):
                         log["email"] = s["email"]
                         all_logs.append(log)
+                if k == 0:                                   # demo teacher 1
+                    insert_demo_extras(cur, teacher, students[0])
 
             run_checks(cur, insights)
         # leaving the `with conn.transaction()` block without an error = COMMIT
