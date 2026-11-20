@@ -330,6 +330,7 @@ form:has(input[name="role"][value="teacher"]:checked) .student-only { display: n
   body { background: #fff; color: #000; }
   .screen { padding: 0; max-width: none; }
   .card { break-inside: avoid; }
+  .cbar i { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 }
 
 /* ---------- bars grow in once when the page loads (transform only; off if motion is reduced) ---------- */
