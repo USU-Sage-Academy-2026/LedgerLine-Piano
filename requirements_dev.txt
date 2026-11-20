@@ -1,5 +1,5 @@
 # LedgerLine — local-only tools (notebooks, seed data, tests). Render does NOT install these.
-# Install with: pip install -r requirements-dev.txt
+# Install with: pip install -r requirements_dev.txt
 # Versions checked on PyPI 2026-11-16.
 
 -r requirements.txt     # include everything the app needs
