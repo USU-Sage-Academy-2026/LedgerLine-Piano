@@ -328,3 +328,426 @@ WHERE ln.student_id = %(student_id)s
   AND ln.lesson_date <  %(week_start)s::date + 7
 ORDER BY ln.lesson_date
 """
+
+
+# ================================================================ Nov 19: queries for the remaining pages
+# (Frontend chat, for the pages Theo asked for at feature crunch. Same rules: %(name)s params,
+#  every teacher write checks ownership inside the SQL.)
+
+# ---------------------------------------------------------------- ownership for one student_piece
+
+# Returns a row ONLY if this student_piece belongs to a student in this teacher's studio.
+TEACHER_PIECE = """
+SELECT sp.id, sp.student_id, sp.seq_order, sp.current_stage_id, sp.started_on
+FROM student_pieces sp
+JOIN students st ON st.id = sp.student_id
+JOIN studios s   ON s.id = st.studio_id
+WHERE sp.id = %(student_piece_id)s
+  AND s.teacher_id = %(teacher_id)s
+"""
+
+# ---------------------------------------------------------------- lookups for the student page
+
+STAGES = "SELECT id, name, position FROM stages ORDER BY position"
+
+# Extra fields for the teacher's student page header.
+STUDENT_PROFILE = """
+SELECT u.display_name, u.email, st.parent_email,
+       MAX(pl.started_at) AS last_practiced_at
+FROM students st
+JOIN users u ON u.id = st.user_id
+LEFT JOIN student_pieces sp ON sp.student_id = st.id
+LEFT JOIN practice_logs pl  ON pl.student_piece_id = sp.id
+WHERE st.id = %(student_id)s
+GROUP BY u.display_name, u.email, st.parent_email
+"""
+
+# Current stage position for each active piece (for the stage ladder + select).
+STUDENT_PIECE_STAGES = """
+SELECT sp.id AS student_piece_id, sp.current_stage_id, sg.position AS stage_position, sp.piece_id,
+       p.rcm_level_id, r.name AS rcm_level, p.henle_level
+FROM student_pieces sp
+JOIN stages sg ON sg.id = sp.current_stage_id
+JOIN pieces p  ON p.id = sp.piece_id
+LEFT JOIN rcm_levels r ON r.id = p.rcm_level_id
+WHERE sp.student_id = %(student_id)s
+  AND sp.completed_on IS NULL
+"""
+
+# Finished pieces, newest first.
+STUDENT_FINISHED_PIECES = """
+SELECT p.title, p.composer, sg.name AS stage, sg.position AS stage_position, sp.completed_on
+FROM student_pieces sp
+JOIN pieces p  ON p.id = sp.piece_id
+JOIN stages sg ON sg.id = sp.current_stage_id
+WHERE sp.student_id = %(student_id)s
+  AND sp.completed_on IS NOT NULL
+ORDER BY sp.completed_on DESC
+"""
+
+# The last 5 logs per active piece (shown under "Notes & logs").
+STUDENT_RECENT_LOGS = """
+SELECT ranked.student_piece_id, ranked.started_at, ranked.minutes, ranked.note
+FROM (
+  SELECT pl.student_piece_id, pl.started_at, pl.minutes, pl.note,
+         ROW_NUMBER() OVER (PARTITION BY pl.student_piece_id ORDER BY pl.started_at DESC) AS rn
+  FROM practice_logs pl
+  JOIN student_pieces sp ON sp.id = pl.student_piece_id
+  WHERE sp.student_id = %(student_id)s
+    AND sp.completed_on IS NULL
+) ranked
+WHERE ranked.rn <= 5
+ORDER BY ranked.started_at DESC
+"""
+
+# Lesson notes for one student, newest first.
+STUDENT_LESSON_NOTES = """
+SELECT ln.id, ln.lesson_date, ln.body, p.title AS piece_title
+FROM lesson_notes ln
+LEFT JOIN student_pieces sp ON sp.id = ln.student_piece_id
+LEFT JOIN pieces p          ON p.id = sp.piece_id
+WHERE ln.student_id = %(student_id)s
+ORDER BY ln.lesson_date DESC, ln.id DESC
+LIMIT 20
+"""
+
+# ---------------------------------------------------------------- tags
+
+# All of this teacher's tags, presets first.
+TEACHER_TAGS = """
+SELECT id, name, applies_to, is_preset
+FROM tags
+WHERE teacher_id = %(teacher_id)s
+ORDER BY applies_to, is_preset DESC, lower(name)
+"""
+
+# Student tags for every student in the studio (dashboard rows).
+STUDIO_STUDENT_TAGS = """
+SELECT stg.student_id, t.id, t.name, t.is_preset
+FROM student_tags stg
+JOIN tags t ON t.id = stg.tag_id
+WHERE t.teacher_id = %(teacher_id)s
+ORDER BY lower(t.name)
+"""
+
+# This teacher's piece tags on one student's active pieces.
+STUDENT_PIECE_TAGS = """
+SELECT sp.id AS student_piece_id, t.id, t.name
+FROM student_pieces sp
+JOIN piece_tags pt ON pt.piece_id = sp.piece_id
+JOIN tags t        ON t.id = pt.tag_id
+WHERE sp.student_id = %(student_id)s
+  AND t.teacher_id = %(teacher_id)s
+ORDER BY lower(t.name)
+"""
+
+TAG_CREATE = """
+INSERT INTO tags (teacher_id, name, applies_to)
+VALUES (%(teacher_id)s, %(name)s, %(applies_to)s)
+RETURNING id
+"""
+
+# Presets can't be deleted (the UI shows a lock; this WHERE enforces it).
+TAG_DELETE = """
+DELETE FROM tags
+WHERE id = %(tag_id)s
+  AND teacher_id = %(teacher_id)s
+  AND NOT is_preset
+RETURNING name
+"""
+
+# The tag must be this teacher's and the right kind (Flask rule from the schema notes).
+STUDENT_TAG_ADD = """
+INSERT INTO student_tags (student_id, tag_id)
+SELECT %(student_id)s, t.id
+FROM tags t
+WHERE t.id = %(tag_id)s
+  AND t.teacher_id = %(teacher_id)s
+  AND t.applies_to = 'student'
+ON CONFLICT DO NOTHING
+RETURNING tag_id
+"""
+
+STUDENT_TAG_REMOVE = """
+DELETE FROM student_tags stg
+USING tags t
+WHERE stg.tag_id = t.id
+  AND stg.student_id = %(student_id)s
+  AND t.id = %(tag_id)s
+  AND t.teacher_id = %(teacher_id)s
+"""
+
+PIECE_TAG_ADD = """
+INSERT INTO piece_tags (piece_id, tag_id)
+SELECT %(piece_id)s, t.id
+FROM tags t
+WHERE t.id = %(tag_id)s
+  AND t.teacher_id = %(teacher_id)s
+  AND t.applies_to = 'piece'
+ON CONFLICT DO NOTHING
+RETURNING tag_id
+"""
+
+PIECE_TAG_REMOVE = """
+DELETE FROM piece_tags pt
+USING tags t
+WHERE pt.tag_id = t.id
+  AND pt.piece_id = %(piece_id)s
+  AND t.id = %(tag_id)s
+  AND t.teacher_id = %(teacher_id)s
+"""
+
+# The 3 locked default student tags, copied to every new teacher.
+PRESET_TAGS_CREATE = """
+INSERT INTO tags (teacher_id, name, applies_to, is_preset)
+VALUES (%(teacher_id)s, 'Beginner', 'student', true),
+       (%(teacher_id)s, 'Adult',    'student', true),
+       (%(teacher_id)s, 'RCM 4',    'student', true)
+"""
+
+# ---------------------------------------------------------------- repertoire writes (teacher)
+
+# Find the piece, or create it. ON CONFLICT ... DO UPDATE is a no-op that makes RETURNING work
+# for both new and existing rows (UNIQUE (title, composer)).
+PIECE_FIND_OR_CREATE = """
+INSERT INTO pieces (title, composer, rcm_level_id, henle_level)
+VALUES (%(title)s, %(composer)s, %(rcm_level_id)s, %(henle_level)s)
+ON CONFLICT (title, composer) DO UPDATE
+  SET rcm_level_id = COALESCE(pieces.rcm_level_id, EXCLUDED.rcm_level_id),  -- fill gaps, never overwrite
+      henle_level  = COALESCE(pieces.henle_level,  EXCLUDED.henle_level)
+RETURNING id
+"""
+
+# New piece goes to the end of the student's list, at stage 1.
+STUDENT_PIECE_CREATE = """
+INSERT INTO student_pieces (student_id, piece_id, seq_order, current_stage_id, started_on)
+SELECT %(student_id)s, %(piece_id)s,
+       COALESCE(MAX(seq_order), 0) + 1,
+       (SELECT id FROM stages WHERE position = 1),
+       (now() AT TIME ZONE 'America/Denver')::date
+FROM student_pieces
+WHERE student_id = %(student_id)s
+RETURNING id
+"""
+
+STAGE_CHANGE_CREATE = """
+INSERT INTO stage_changes (student_piece_id, from_stage_id, to_stage_id, changed_by)
+VALUES (%(student_piece_id)s, %(from_stage_id)s, %(to_stage_id)s, %(teacher_id)s)
+"""
+
+# Keep current_stage_id in step with stage_changes (same transaction, see schema notes).
+SET_CURRENT_STAGE = """
+UPDATE student_pieces
+SET current_stage_id = %(to_stage_id)s
+WHERE id = %(student_piece_id)s
+"""
+
+# Saving an assignment adds a new row; the newest row is "the" assignment (history kept).
+ASSIGNMENT_CREATE = """
+INSERT INTO assignments (student_piece_id, title, body, minutes_per_day)
+VALUES (%(student_piece_id)s, %(title)s, %(body)s, %(minutes_per_day)s)
+"""
+
+# The active piece just above or below (for the up/down buttons).
+NEIGHBOR_PIECE = """
+SELECT id, seq_order
+FROM student_pieces
+WHERE student_id = %(student_id)s
+  AND completed_on IS NULL
+  AND CASE WHEN %(direction)s = 'up' THEN seq_order < %(seq_order)s
+           ELSE seq_order > %(seq_order)s END
+ORDER BY CASE WHEN %(direction)s = 'up' THEN -seq_order ELSE seq_order END
+LIMIT 1
+"""
+
+# The UNIQUE (student_id, seq_order) is DEFERRABLE INITIALLY DEFERRED, so two updates in one
+# transaction can swap positions without a temporary clash.
+SET_SEQ_ORDER = "UPDATE student_pieces SET seq_order = %(seq_order)s WHERE id = %(student_piece_id)s"
+
+FINISH_PIECE = """
+UPDATE student_pieces
+SET completed_on = GREATEST((now() AT TIME ZONE 'America/Denver')::date, started_on)
+WHERE id = %(student_piece_id)s
+  AND completed_on IS NULL
+"""
+
+LESSON_NOTE_CREATE = """
+INSERT INTO lesson_notes (student_id, body, student_piece_id, lesson_date)
+VALUES (%(student_id)s, %(body)s, %(student_piece_id)s, (now() AT TIME ZONE 'America/Denver')::date)
+"""
+
+# Share link with the 5 "what viewers see" checkboxes. created_by = whoever made it.
+SHARE_LINK_CREATE_WITH_FIELDS = """
+INSERT INTO share_links (student_id, created_by, token, week_start,
+                         show_name, show_pieces, show_stages, show_minutes, show_teacher_notes)
+VALUES (
+  %(student_id)s, %(user_id)s, %(token)s,
+  date_trunc('week', now() AT TIME ZONE 'America/Denver')::date,
+  %(show_name)s, %(show_pieces)s, %(show_stages)s, %(show_minutes)s, %(show_teacher_notes)s
+)
+RETURNING id
+"""
+
+# ---------------------------------------------------------------- invites + join code
+
+STUDIO_JOIN_CODE = "SELECT join_code FROM studios WHERE teacher_id = %(teacher_id)s"
+
+SET_JOIN_CODE = """
+UPDATE studios SET join_code = %(code)s
+WHERE teacher_id = %(teacher_id)s
+"""
+
+# Is this email already a student in my studio?
+STUDENT_IN_STUDIO_BY_EMAIL = """
+SELECT 1
+FROM users u
+JOIN students st ON st.user_id = u.id
+JOIN studios s   ON s.id = st.studio_id
+WHERE u.email = %(email)s
+  AND s.teacher_id = %(teacher_id)s
+"""
+
+INVITE_CREATE = """
+INSERT INTO invites (studio_id, email)
+SELECT s.id, %(email)s
+FROM studios s
+WHERE s.teacher_id = %(teacher_id)s
+RETURNING id
+"""
+
+INVITE_REMOVE = """
+DELETE FROM invites i
+USING studios s
+WHERE i.studio_id = s.id
+  AND i.id = %(invite_id)s
+  AND s.teacher_id = %(teacher_id)s
+  AND i.status = 'pending'
+RETURNING i.email
+"""
+
+# The student answers an invite sent to THEIR email (checked in the WHERE).
+INVITE_RESPOND = """
+UPDATE invites i
+SET status = %(status)s, responded_at = now()
+FROM users u
+WHERE i.id = %(invite_id)s
+  AND u.id = %(user_id)s
+  AND i.email = u.email
+  AND i.status = 'pending'
+RETURNING i.studio_id
+"""
+
+SET_STUDENT_STUDIO = """
+UPDATE students SET studio_id = %(studio_id)s
+WHERE user_id = %(user_id)s
+"""
+
+STUDIO_BY_JOIN_CODE = "SELECT id, name FROM studios WHERE join_code = %(code)s"
+
+# The student's current studio + teacher name (log page, card).
+STUDENT_STUDIO = """
+SELECT s.name AS studio_name, t.display_name AS teacher_name
+FROM students st
+JOIN studios s ON s.id = st.studio_id
+JOIN users t   ON t.id = s.teacher_id
+WHERE st.user_id = %(user_id)s
+"""
+
+# The student's newest active link for this week's card.
+STUDENT_ACTIVE_LINK = """
+SELECT token, expires_at
+FROM share_links
+WHERE student_id = %(student_id)s
+  AND revoked_at IS NULL
+  AND expires_at > now()
+  AND week_start = date_trunc('week', now() AT TIME ZONE 'America/Denver')::date
+ORDER BY created_at DESC
+LIMIT 1
+"""
+
+
+# ================================================================ Nov 19 (2): difficulty, goals, profile pages
+
+RCM_LEVELS = "SELECT id, name FROM rcm_levels ORDER BY sort_order"
+
+# Difficulty belongs to the piece itself (pieces is shared by every studio), so this changes it everywhere.
+SET_PIECE_LEVELS = """
+UPDATE pieces p
+SET rcm_level_id = %(rcm_level_id)s, henle_level = %(henle_level)s
+FROM student_pieces sp
+WHERE sp.id = %(student_piece_id)s
+  AND p.id = sp.piece_id
+"""
+
+# ---------------------------------------------------------------- goals (student)
+
+# This period's goals for one tab ('general' goals have no period_start).
+GOALS_FOR_PERIOD = """
+SELECT id, body, kind, target_count, done_count, completed_at
+FROM goals
+WHERE student_id = %(student_id)s
+  AND period = %(period)s
+  AND (period_start IS NOT DISTINCT FROM %(period_start)s)
+ORDER BY completed_at IS NOT NULL, created_at
+"""
+
+GOALS_COMPLETED = """
+SELECT id, body, kind, target_count, done_count, completed_at, period
+FROM goals
+WHERE student_id = %(student_id)s
+  AND completed_at IS NOT NULL
+ORDER BY completed_at DESC
+LIMIT 30
+"""
+
+GOAL_CREATE = """
+INSERT INTO goals (student_id, period, period_start, body, kind, target_count)
+VALUES (%(student_id)s, %(period)s, %(period_start)s, %(body)s, %(kind)s, %(target_count)s)
+"""
+
+# Check goals: done <-> not done.
+GOAL_TOGGLE = """
+UPDATE goals
+SET completed_at = CASE WHEN completed_at IS NULL THEN now() ELSE NULL END
+WHERE id = %(goal_id)s
+  AND student_id = %(student_id)s
+  AND kind = 'check'
+"""
+
+# Count goals: +1 / -1, kept between 0 and the target; completed exactly when full
+# (the CHECK in migration 002 requires that).
+GOAL_STEP = """
+UPDATE goals
+SET done_count   = LEAST(GREATEST(done_count + %(delta)s, 0), target_count),
+    completed_at = CASE WHEN LEAST(GREATEST(done_count + %(delta)s, 0), target_count) = target_count
+                        THEN COALESCE(completed_at, now()) END
+WHERE id = %(goal_id)s
+  AND student_id = %(student_id)s
+  AND kind = 'count'
+"""
+
+GOAL_DELETE = "DELETE FROM goals WHERE id = %(goal_id)s AND student_id = %(student_id)s"
+
+# ---------------------------------------------------------------- profiles
+
+STUDENT_PROFILE_SELF = """
+SELECT u.display_name, u.email, st.parent_email, s.name AS studio_name, t.display_name AS teacher_name
+FROM users u
+JOIN students st    ON st.user_id = u.id
+LEFT JOIN studios s ON s.id = st.studio_id
+LEFT JOIN users t   ON t.id = s.teacher_id
+WHERE u.id = %(user_id)s
+"""
+
+SET_CONTACT_EMAIL = "UPDATE students SET parent_email = %(email)s WHERE user_id = %(user_id)s"
+
+TEACHER_PROFILE = """
+SELECT u.display_name, u.email, s.name AS studio_name, s.join_code, c.name AS city, c.state,
+       (SELECT COUNT(*) FROM students st WHERE st.studio_id = s.id) AS student_count
+FROM users u
+JOIN studios s ON s.teacher_id = u.id
+JOIN cities c  ON c.id = s.city_id
+WHERE u.id = %(teacher_id)s
+"""
+
+SET_STUDIO_NAME = "UPDATE studios SET name = %(name)s WHERE teacher_id = %(teacher_id)s"

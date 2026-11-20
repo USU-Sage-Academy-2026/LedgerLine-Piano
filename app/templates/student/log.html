@@ -1,24 +1,100 @@
-<!doctype html>
-<title>Log practice – LedgerLine</title>
+{% extends "base.html" %}
+{% from "partials/macros.html" import ladder %}
+{% block title %}Log practice · LedgerLine{% endblock %}
+{% block content %}
 <h1>Log practice</h1>
-{% for message in get_flashed_messages() %}<p>{{ message }}</p>{% endfor %}
+
+{% if invite %}
+<section class="banner" aria-labelledby="inv-h">
+  <p id="inv-h"><b>Join {{ invite.studio_name }}?</b></p>
+  <div class="row">
+    <form method="post" action="{{ url_for('student.respond_invite', invite_id=invite.id) }}">
+      <button class="primary" name="answer" value="accepted">✓ Yes, join</button>
+    </form>
+    <form method="post" action="{{ url_for('student.respond_invite', invite_id=invite.id) }}">
+      <button class="secondary" name="answer" value="declined">✕ No thanks</button>
+    </form>
+  </div>
+</section>
+{% endif %}
+
+{% if not studio %}
+<form method="post" action="{{ url_for('student.join') }}" class="card row">
+  <label for="code" class="grow">Have a join code from your teacher?</label>
+  <input id="code" name="code" inputmode="numeric" maxlength="7" placeholder="123 456" class="code-input">
+  <button class="secondary" type="submit">Join studio</button>
+</form>
+{% endif %}
+
+<section class="card" aria-labelledby="wk-h">
+  <p class="small muted" id="wk-h">This week’s minutes{% if studio %} · {{ studio.studio_name }}{% endif %}</p>
+  <p><span class="big">{{ week_total }}</span>{% if goal %} <span class="muted">/ {{ goal }} min goal</span>{% else %} <span class="muted">min</span>{% endif %}</p>
+  {% if goal %}
+  {% set pct = [100, (week_total / goal * 100) | round | int] | min %}
+  <div class="meter" role="img" aria-label="{{ pct }}% of weekly goal"><i style="--w: {{ pct }}%"></i></div>
+  {% endif %}
+</section>
+
 {% if pieces %}
-<form method="post">
-  <label>Piece
-    <select name="student_piece_id" required>
+<form method="post" class="stack" id="logForm">
+  <div class="field">
+    <label for="piece">Piece</label>
+    <select id="piece" name="student_piece_id" required>
       {% for piece in pieces %}
-        <option value="{{ piece.student_piece_id }}" {% if form.student_piece_id == piece.student_piece_id|string %}selected{% endif %}>{{ piece.seq_order }}. {{ piece.title }}</option>
+      <option value="{{ piece.student_piece_id }}"
+              data-last="{{ piece.last_text }}"
+              data-stage="{{ piece.stage | capitalize }}"
+              data-assignment="{{ piece.assignment_title or '' }}{% if piece.assignment_body %}: {{ piece.assignment_body }}{% endif %}{% if piece.minutes_per_day %} ({{ piece.minutes_per_day }} min a day){% endif %}"
+              {% if form.student_piece_id == piece.student_piece_id|string %}selected{% endif %}>{{ loop.index }}. {{ piece.title }}</option>
       {% endfor %}
     </select>
-  </label><br>
-  <label>Minutes <input type="number" name="minutes" min="1" max="300" value="{{ form.minutes }}" required></label><br>
-  <details>
+    <p class="hint" id="pieceInfo">{{ pieces[0].last_text }}</p>
+  </div>
+
+  <div class="field">
+    <span class="label">Assignment</span>
+    <p class="assignment" id="assignment">{{ pieces[0].assignment_title or 'No assignment yet.' }}{% if pieces[0].assignment_body %}: {{ pieces[0].assignment_body }}{% endif %}</p>
+  </div>
+
+  <fieldset class="field">
+    <legend>Minutes</legend>
+    <div class="chips" id="chips">
+      {% for m in [15, 30, 45, 60] %}<button type="button" class="chip" data-min="{{ m }}" aria-pressed="false">{{ m }}</button>{% endfor %}
+    </div>
+    <label for="minutes" class="small">Or type minutes (1–300)</label>
+    <input id="minutes" name="minutes" type="number" inputmode="numeric" min="1" max="300" value="{{ form.minutes }}" required class="narrow">
+  </fieldset>
+
+  <details class="earlier" {% if form.earlier_local %}open{% endif %}>
     <summary>Practiced earlier?</summary>
-    <label>Started at <input type="datetime-local" name="earlier_local" value="{{ form.earlier_local }}"></label>
+    <div class="field">
+      <label for="earlier">Started at</label>
+      <input id="earlier" name="earlier_local" type="datetime-local" value="{{ form.earlier_local }}" aria-describedby="earlier-hint">
+      <p class="hint" id="earlier-hint">Up to 7 days back. Leave empty if you just finished.</p>
+    </div>
   </details>
-  <label>Note <textarea name="note" maxlength="500">{{ form.note }}</textarea></label><br>
-  <button type="submit">Save</button>
+
+  <div class="field">
+    <label for="note">Note <span class="muted small">(only for this piece)</span></label>
+    <textarea id="note" name="note" maxlength="500" aria-describedby="noteCount" data-count="#noteCount" placeholder="What went well? What will you fix next time?">{{ form.note }}</textarea>
+    <p class="ncount" id="noteCount" aria-live="polite">{{ (form.note or '') | length }}/500</p>
+    <div class="templates">
+      <button type="button" class="secondary" data-template="Biggest problems today:&#10;1. &#10;2. &#10;3. ">+ Problems</button>
+      <button type="button" class="secondary" data-template="BPM log:&#10;Start: __ bpm&#10;Cleanest: __ bpm">+ BPM log</button>
+      <button type="button" class="secondary" data-template="What I tried:&#10;- &#10;What worked:&#10;- ">+ Solutions</button>
+    </div>
+  </div>
+
+  <div class="sticky-actions">
+    <button type="reset" class="quiet">Clear form</button>
+    <button type="submit" class="primary">Log practice</button>
+  </div>
 </form>
 {% else %}
-<p>No active pieces yet. Ask your teacher to assign one.</p>
+<div class="empty"><b>No active pieces yet</b><br>Ask your teacher to assign one. It will show up here.</div>
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/log.js') }}"></script>
+{% endblock %}

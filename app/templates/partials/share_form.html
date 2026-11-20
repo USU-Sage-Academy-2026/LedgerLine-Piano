@@ -1,0 +1,16 @@
+{# The "what viewers can see" checkboxes. Needs `action` (the form URL). #}
+<form method="post" action="{{ action }}" class="card stack no-print">
+  <h2>Share this week’s card</h2>
+  <fieldset>
+    <legend class="small muted">Viewers can see:</legend>
+    <div class="checks">
+      <label><input type="checkbox" name="show_name" checked> Name (first name + initial)</label>
+      <label><input type="checkbox" name="show_pieces" checked> Pieces</label>
+      <label><input type="checkbox" name="show_stages" checked> Stages</label>
+      <label><input type="checkbox" name="show_minutes" checked> Minutes</label>
+      <label><input type="checkbox" name="show_teacher_notes" checked> Teacher notes</label>
+    </div>
+  </fieldset>
+  <p class="hint">No email addresses or other students are ever shown. The link works for 30 days.</p>
+  <button class="primary" type="submit">Create link</button>
+</form>

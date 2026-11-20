@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Students · LedgerLine{% endblock %}
+{% block content %}
+<h1>Students</h1>
+<form method="get" class="filters" role="search">
+  <div class="field grow">
+    <label for="q">Search by name</label>
+    <input id="q" name="q" type="search" value="{{ q }}" placeholder="e.g. Melody…" autocomplete="off" spellcheck="false">
+  </div>
+  <div class="field">
+    <label for="tag">Show</label>
+    <select id="tag" name="tag">
+      <option value="">All students</option>
+      <option value="attention" {% if tag == 'attention' %}selected{% endif %}>Needs attention (4+ days)</option>
+      {% for t in all_tags %}<option value="{{ t }}" {% if tag == t %}selected{% endif %}>Tag: {{ t }}</option>{% endfor %}
+    </select>
+  </div>
+  <button class="secondary" type="submit">Apply</button>
+</form>
+<p class="small muted" aria-live="polite">Showing {{ students | length }} of {{ total }}.{% if q or tag %} <a href="{{ url_for('teacher.students') }}">Clear filters</a>{% endif %}</p>
+
+{% if students %}
+<div class="shead" aria-hidden="true"><span>Name</span><span>This week / goal</span><span>Last practiced</span><span>Tags</span></div>
+<ul class="list">
+  {% for s in students %}
+  {% set l = last[s.student_id] %}
+  <li><a class="srow" href="{{ url_for('teacher.student_detail', student_id=s.student_id) }}">
+    <span><span class="lbl">Name</span><span class="sname">{{ s.display_name }}</span>
+      {% if l.needs_attention %}<br><span class="attn">⚠ Needs attention</span>{% endif %}</span>
+    <span><span class="lbl">This week / goal</span><b class="tnum">{{ s.minutes_this_week }}</b>{% if s.weekly_goal_minutes %} / <span class="tnum">{{ s.weekly_goal_minutes }}</span>{% endif %} min
+      {% if s.weekly_goal_minutes %}{% set pct = [100, (s.minutes_this_week / s.weekly_goal_minutes * 100) | round | int] | min %}<span class="meter" aria-hidden="true"><i style="--w: {{ pct }}%"></i></span>{% endif %}</span>
+    <span><span class="lbl">Last practiced</span>{{ l.last_practiced_at.strftime('%b %d') if l.last_practiced_at else 'Never' }}</span>
+    <span><span class="lbl">Tags</span>{% for t in tags.get(s.student_id, []) %}<span class="pill">{{ t }}</span> {% else %}<span class="muted small">None</span>{% endfor %}</span>
+  </a></li>
+  {% endfor %}
+</ul>
+{% elif total %}
+<div class="empty"><b>No students match</b><br>Try another name or tag.</div>
+{% else %}
+<div class="empty"><b>No students yet</b><br>Invite your first student by email, or share your join code.
+  <p><a class="btn" href="{{ url_for('teacher.invite') }}">Add a student</a></p></div>
+{% endif %}
+{% endblock %}

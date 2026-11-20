@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Add a student · LedgerLine{% endblock %}
+{% block content %}
+<h1>Add a student</h1>
+
+<form method="post" class="card stack" aria-labelledby="inv-h">
+  <h2 id="inv-h">Invite by email</h2>
+  <div class="field">
+    <label for="inv-email">Student’s email</label>
+    <input id="inv-email" name="email" type="email" autocomplete="off" spellcheck="false" placeholder="student@example.com…" aria-describedby="inv-hint" required>
+    <p class="hint" id="inv-hint">They see the invite when they log in and choose Yes or No.</p>
+  </div>
+  <button class="primary" type="submit">Send invite</button>
+</form>
+
+<section class="card stack section" aria-labelledby="jc-h">
+  <h2 id="jc-h">Or share your join code</h2>
+  <div class="row">
+    <span class="code" id="joinCode" translate="no">{{ code[:3] }} {{ code[3:] }}</span>
+    <button class="secondary" type="button" data-copy-text="{{ code }}">Copy code</button>
+    <form method="post" action="{{ url_for('teacher.new_join_code') }}" data-confirm="Make a new code? The old one stops working right away.">
+      <button class="quiet" type="submit">Make a new code</button>
+    </form>
+  </div>
+  <p class="hint">Students enter it on their log page after creating an account.</p>
+</section>
+
+<h2>Sent invitations</h2>
+{% if invites %}
+<ul class="list">
+  {% for v in invites %}
+  <li class="card spread">
+    <span class="min0"><b class="truncate">{{ v.email }}</b><br><span class="small muted">Sent {{ v.created_at.strftime('%b %d') }} · waiting for an answer</span></span>
+    <form method="post" action="{{ url_for('teacher.remove_invite', invite_id=v.id) }}" data-confirm="Remove the invite to {{ v.email }}?">
+      <button class="secondary danger" type="submit">Remove invite</button>
+    </form>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<div class="empty">No pending invitations. Invites you send stay here until the student answers.</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,137 @@
+<!doctype html>
+{# Home page. Stands alone (does not extend base.html) because it has its own full-screen layout. #}
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LedgerLine · Piano practice, written down the same day</title>
+  <meta name="description" content="LedgerLine lets piano teachers see each student's practice per piece, track six learning stages and share a weekly progress card.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Caveat:wght@500;600&family=Noto+Music&display=swap">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
+  <script type="importmap">
+  { "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  } }
+  </script>
+</head>
+<body>
+<div class="progress" id="progress" aria-hidden="true"></div>
+<canvas id="scene" aria-hidden="true" data-model="{{ url_for('static', filename='models/piano.glb') }}"></canvas>
+<div class="scrim" aria-hidden="true"></div>
+
+<header class="top">
+  <a class="wordmark" href="#top">LedgerLine</a>
+  <div class="top-right">
+    <span class="counter" id="counter" aria-hidden="true">01 / 06</span>
+    <span class="top-actions">
+      {% if session.role %}
+      <a class="signup" href="{{ app_home }}">Open the app</a>
+      {% else %}
+      <a class="login" href="{{ url_for('auth.login') }}">Log in</a><a class="signup" href="{{ url_for('auth.register') }}">Create account</a>
+      {% endif %}
+    </span>
+    <button class="theme" id="motion" type="button" aria-pressed="true">Motion on</button>
+    <button class="theme" id="theme" type="button" aria-pressed="false">Dark</button>
+  </div>
+</header>
+
+<main id="scroller"><span id="top"></span>
+  <section class="chapter" aria-labelledby="h-hero">
+    <div class="panel">
+      <p class="eyebrow">For piano teachers and their students</p>
+      <h1 id="h-hero" class="reveal"><span class="line"><span>Practice,</span></span><span class="line"><span>written down</span></span><span class="line"><span>the same day.</span></span></h1>
+      <p class="lede">Students log each session against the piece they practiced. Teachers read it before the next lesson, not a week later.</p>
+      <a class="btn" href="{{ url_for('auth.login') }}">See the demo studio</a><a class="link" href="#stages">How it works ↓</a>
+    </div>
+  </section>
+
+  <section class="chapter" id="stages" aria-labelledby="h-stages">
+    <div class="panel">
+      <p class="eyebrow">Repertoire</p>
+      <h2 id="h-stages" class="reveal"><span class="line"><span>Every piece moves</span></span><span class="line"><span>through six stages.</span></span></h2>
+      <div class="grow">
+        <p class="piece">[Nocturne in E♭, Op. 9 No. 2]</p>
+        <ol class="ladder" aria-label="Current stage: 3 of 6, Articulation and details">
+          <li class="done"><span class="seg" style="--i:0"></span><span>✓ 1 · Learning notes</span></li>
+          <li class="done"><span class="seg" style="--i:1"></span><span>✓ 2 · Slow speed</span></li>
+          <li class="current"><span class="seg" style="--i:2"></span><span>3 · Articulation + details<span class="tag">current</span></span></li>
+          <li><span class="seg" style="--i:3"></span><span>4 · Up to tempo</span></li>
+          <li><span class="seg" style="--i:4"></span><span>5 · Polished</span></li>
+          <li><span class="seg" style="--i:5"></span><span>6 · Performance ready</span></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section class="chapter" aria-labelledby="h-notes">
+    <div class="panel">
+      <p class="eyebrow">Lesson notes · teacher</p>
+      <h2 id="h-notes" class="reveal"><span class="line"><span>Notes stay</span></span><span class="line"><span>on the stand.</span></span></h2>
+      <p class="lede">Up to 2,000 characters after each lesson, attached to the piece. Students see them the moment they sit down.</p>
+      <p class="note-sample">“Slow left hand in mm. 12–24 before hands together.”</p>
+      <p class="note-meta">[Ms. Alvarez] · Nov 16</p>
+    </div>
+  </section>
+
+  <section class="chapter" aria-labelledby="h-logs">
+    <div class="panel">
+      <p class="eyebrow">Practice log · student</p>
+      <h2 id="h-logs" class="reveal"><span class="line"><span>Three taps,</span></span><span class="line"><span>then back to the keys.</span></span></h2>
+      <p class="lede">Pick the piece, pick the minutes, log it. Add a note of up to 500 characters if something stuck. The time is recorded for you.</p>
+      <ol class="taps" aria-label="Three taps to log practice">
+        <li><b>1</b>[Nocturne]</li><li><b>2</b>30 min</li><li><b>3</b>Log practice</li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="chapter card-chapter" aria-labelledby="h-card">
+    <div class="panel">
+      <p class="eyebrow">Weekly progress card</p>
+      <h2 id="h-card" class="reveal"><span class="line"><span>One card a week,</span></span><span class="line"><span>for students and parents.</span></span></h2>
+      <div class="card-demo" id="cardDemo">
+        <article class="pcard" aria-label="Example weekly progress card">
+          <p class="pcard-week">Week of Nov 16</p>
+          <p class="pcard-name">[Maya R.]</p>
+          <div class="total"><span class="tnum">145</span><span>min</span><span class="delta">↑ 20 vs last week</span></div>
+          <div class="bars" role="img" aria-label="Minutes per day: Monday 30, Tuesday 0, Wednesday 25, Thursday 30, Friday 15, Saturday 45, Sunday 0">
+            <div class="bar-col"><span class="bar" style="--h:.67;--i:0"></span><span class="day">Mo</span></div>
+            <div class="bar-col"><span class="bar" style="--h:0;--i:1"></span><span class="day">Tu</span></div>
+            <div class="bar-col"><span class="bar" style="--h:.56;--i:2"></span><span class="day">We</span></div>
+            <div class="bar-col"><span class="bar" style="--h:.67;--i:3"></span><span class="day">Th</span></div>
+            <div class="bar-col"><span class="bar" style="--h:.33;--i:4"></span><span class="day">Fr</span></div>
+            <div class="bar-col"><span class="bar" style="--h:1;--i:5"></span><span class="day">Sa</span></div>
+            <div class="bar-col"><span class="bar" style="--h:0;--i:6"></span><span class="day">Su</span></div>
+          </div>
+          <ul class="pieces">
+            <li><span>[Nocturne Op. 9 No. 2]</span><span class="mini" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span><span class="stage-txt">Stage 3 of 6 · Articulation + details</span></li>
+            <li><span>[Clementi Sonatina Op. 36 No. 1]</span><span class="mini" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="stage-txt">Stage 5 of 6 · Polished</span></li>
+          </ul>
+          <p class="pcard-note"><strong>Teacher:</strong> Slow left hand in mm. 12–24 before hands together.</p>
+          <div class="cover" aria-hidden="true">
+            <span class="cover-kicker">LedgerLine · weekly card</span>
+            <span class="cover-rule"></span>
+            <span class="cover-name">[Maya R.]</span>
+            <span>Week of Nov 16</span>
+          </div>
+        </article>
+        <button class="ghost" id="replay" type="button">Replay the opening</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="chapter" id="cta" aria-labelledby="h-cta">
+    <div class="panel">
+      <p class="eyebrow">LedgerLine</p>
+      <h2 id="h-cta" class="reveal"><span class="line"><span>Bring the studio’s</span></span><span class="line"><span>week into one place.</span></span></h2>
+      <a class="btn" href="{{ url_for('auth.register') }}">Create an account</a> <a class="link" href="{{ url_for('auth.login') }}">Log in</a>
+      <p class="fineprint">Names and numbers on this page are placeholder examples. Piano model: “Baby Grand Piano” by Roy_1508348 on Blend Swap, CC0 (public domain); logo removed, interior replaced with an original strings texture, sheet music added.</p>
+    </div>
+  </section>
+</main>
+
+<script type="module" src="{{ url_for('static', filename='js/home.js') }}"></script>
+</body>
+</html>

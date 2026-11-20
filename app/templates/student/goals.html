@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Goals · LedgerLine{% endblock %}
+{% set labels = {"week": "Week", "month": "Month", "year": "Year", "general": "General", "completed": "Completed"} %}
+{% block content %}
+<h1>Goals</h1>
+<nav class="tabs" aria-label="Goal period">
+  {% for t in tabs %}<a class="tab" href="{{ url_for('student.goals', tab=t) }}" {% if t == tab %}aria-current="page"{% endif %}>{{ labels[t] }}</a>{% endfor %}
+</nav>
+
+{% if goals %}
+<ul class="list">
+  {% for g in goals %}
+  {% set done = g.completed_at is not none %}
+  <li class="card goal {{ 'done' if done }}">
+    {% if g.kind == 'check' %}
+    <form method="post" action="{{ url_for('student.goal_action', goal_id=g.id, action='toggle') }}">
+      <input type="hidden" name="tab" value="{{ tab }}">
+      <button class="check" type="submit" aria-pressed="{{ 'true' if done else 'false' }}" aria-label="{{ 'Mark not done' if done else 'Mark done' }}: {{ g.body }}">{% if done %}✓{% endif %}</button>
+    </form>
+    {% else %}
+    <span class="check static" aria-hidden="true">{% if done %}✓{% endif %}</span>
+    {% endif %}
+    <div class="min0">
+      <p class="gtext">{{ g.body }}</p>
+      {% if g.kind == 'count' %}
+      <div class="stepper">
+        <form method="post" action="{{ url_for('student.goal_action', goal_id=g.id, action='minus') }}"><input type="hidden" name="tab" value="{{ tab }}"><button type="submit" aria-label="One fewer: {{ g.body }}" {% if g.done_count == 0 %}disabled{% endif %}>−</button></form>
+        <output class="tnum" aria-label="{{ g.done_count }} of {{ g.target_count }}">{{ g.done_count }}/{{ g.target_count }}</output>
+        <form method="post" action="{{ url_for('student.goal_action', goal_id=g.id, action='plus') }}"><input type="hidden" name="tab" value="{{ tab }}"><button type="submit" aria-label="One more: {{ g.body }}" {% if g.done_count == g.target_count %}disabled{% endif %}>+</button></form>
+      </div>
+      {% endif %}
+      {% if done %}<p class="small muted">Done {{ g.completed_at.strftime('%b %d') }}{% if tab == 'completed' %} · {{ labels[g.period] | lower }} goal{% endif %}</p>{% endif %}
+    </div>
+    <form method="post" action="{{ url_for('student.goal_action', goal_id=g.id, action='delete') }}" data-confirm="Delete the goal “{{ g.body }}”?">
+      <input type="hidden" name="tab" value="{{ tab }}">
+      <button class="icon-btn" type="submit" aria-label="Delete goal: {{ g.body }}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>
+    </form>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<div class="empty">{% if tab == 'completed' %}<b>Nothing finished yet</b><br>Completed goals collect here.{% else %}<b>No {{ labels[tab] | lower }} goals yet</b><br>Add one below.{% endif %}</div>
+{% endif %}
+
+{% if tab != 'completed' %}
+<form method="post" class="card stack section" aria-labelledby="add-h">
+  <h2 id="add-h">Add a {{ labels[tab] | lower }} goal</h2>
+  <div class="field">
+    <label for="body">Goal</label>
+    <input id="body" name="body" maxlength="140" placeholder="e.g. Memorize mm. 5–8…" autocomplete="off" required>
+  </div>
+  <div class="row">
+    <label class="inline-check"><input type="checkbox" name="counted" id="counted"> Count sessions</label>
+    <span class="count-target">
+      <label for="target_count" class="small">Target</label>
+      <input id="target_count" name="target_count" type="number" inputmode="numeric" min="1" max="50" value="5" class="tiny">
+    </span>
+  </div>
+  <button class="primary" type="submit">Add goal</button>
+</form>
+{% endif %}
+{% endblock %}

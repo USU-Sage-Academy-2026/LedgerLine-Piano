@@ -4,35 +4,60 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}LedgerLine{% endblock %}</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+  <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0F141C" media="(prefers-color-scheme: dark)">
+  <!-- Runs before the page is drawn, so a saved Light/Dark choice never flashes the wrong colors. -->
+  <script>try { const t = localStorage.getItem("ll-theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;700&family=Newsreader:opsz,wght@6..72,500&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;700&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
 </head>
 <body>
+  {% from "partials/macros.html" import navlink with context %}
+  <a class="skip" href="#main">Skip to content</a>
   <header class="topbar">
-    <a class="wordmark" href="{{ url_for('auth.login') }}">LedgerLine</a>
+    <a class="wordmark" href="{{ url_for('home') }}">LedgerLine</a>
+    <div class="topbar-actions">
+      <button class="secondary" type="button" id="themeBtn" aria-pressed="false">Dark</button>
+      {% if session.role %}<a class="secondary" href="{{ url_for('auth.logout') }}">Log out</a>{% endif %}
+    </div>
+  </header>
+
+  <div class="shell">
     {% if session.role %}
-    <nav aria-label="Main">
+    <!-- One nav: a bottom tab bar on phones, a left rail from 768px (see .appnav in app.css). -->
+    <nav class="appnav" aria-label="Main">
       {% if session.role == 'teacher' %}
-        <!-- enforces that charts are only rendered for the right roles-->
-        <a href="{{ url_for('teacher.dashboard') }}" {% if request.endpoint == 'teacher.dashboard' %}aria-current="page"{% endif %}>Dashboard</a>
+        {{ navlink('teacher.dashboard', 'Dashboard', 'dashboard') }}
+        {{ navlink('teacher.students', 'Students', 'students') }}
+        {{ navlink('teacher.cards', 'Cards', 'card') }}
+        {{ navlink('teacher.invite', 'Add student', 'invite') }}
+        {{ navlink('teacher.tags', 'Tags', 'tags') }}
+        {{ navlink('teacher.profile', 'Profile', 'profile') }}
       {% else %}
-        <a href="{{ url_for('student.log_practice') }}" {% if request.endpoint == 'student.log_practice' %}aria-current="page"{% endif %}>Log</a>
+        {{ navlink('student.log_practice', 'Log', 'log') }}
+        {{ navlink('student.pieces', 'Pieces', 'pieces') }}
+        {{ navlink('student.goals', 'Goals', 'goals') }}
+        {{ navlink('student.card', 'Card', 'card') }}
+        {{ navlink('student.profile', 'Profile', 'profile') }}
       {% endif %}
-      <a href="{{ url_for('auth.logout') }}">Log out</a>
     </nav>
     {% endif %}
-  </header>
-  {% with messages = get_flashed_messages() %}
-    {% if messages %}
-    <div class="flashes" role="status">
-      {% for m in messages %}<p>{{ m }}</p>{% endfor %}
-    </div>
-    {% endif %}
-  {% endwith %}
-  <main id="main">
-    {% block content %}{% endblock %}
-  </main>
+
+    <main id="main" class="{% block main_class %}screen{% endblock %}">
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div class="flashes" role="status">
+          {% for m in messages %}<p>{{ m }}</p>{% endfor %}
+        </div>
+        {% endif %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  {% block scripts %}{% endblock %}
 </body>
 </html>

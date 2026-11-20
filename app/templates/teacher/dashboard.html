@@ -1,14 +1,71 @@
-<!doctype html>
-<title>Dashboard – LedgerLine</title>
+{% extends "base.html" %}
+{% block title %}Dashboard · LedgerLine{% endblock %}
+{% block content %}
 <h1>{{ studio.name }}</h1>
-<p>{{ studio.city }}, {{ studio.state }}</p>
-<h2>Students ({{ students|length }})</h2>
-<ul>
-  {% for student in students %}
-    <li>{{ student.display_name }}: {{ student.email }}</li>
-  {% else %}
-    <!-- if there are no students, jinja shows this message -->
-    <li>No students yet.</li>
+<p class="muted subtitle">{{ studio.city }}, {{ studio.state }}</p>
+
+{% if students %}
+<p><b>This week:</b> <span class="tnum">{{ week_total }}</span> min across {{ students | length }} student{{ 's' if students | length != 1 }}</p>
+
+{% set flagged = attention | selectattr("needs_attention") | list %}
+{% if flagged %}
+<section class="card alert" aria-labelledby="attn-h">
+  <h2 id="attn-h">Needs attention ({{ flagged | length }})</h2>
+  <p class="small muted">No practice logged in 4+ days.</p>
+  <ul class="inline-list">
+    {% for s in flagged %}
+    <li><a href="{{ url_for('teacher.student_detail', student_id=s.student_id) }}">{{ s.display_name }}</a></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<h2>Students</h2>
+<div class="shead" aria-hidden="true"><span>Name</span><span>This week / goal</span><span>Last practiced</span><span>Tags</span></div>
+<ul class="list">
+  {% for s in students %}
+  {% set l = last[s.student_id] %}
+  <li><a class="srow" href="{{ url_for('teacher.student_detail', student_id=s.student_id) }}">
+    <span><span class="lbl">Name</span><span class="sname">{{ s.display_name }}</span>
+      {% if l.needs_attention %}<br><span class="attn">⚠ Needs attention</span>{% endif %}</span>
+    <span><span class="lbl">This week / goal</span><b class="tnum">{{ s.minutes_this_week }}</b>{% if s.weekly_goal_minutes %} / <span class="tnum">{{ s.weekly_goal_minutes }}</span>{% endif %} min
+      {% if s.weekly_goal_minutes %}
+      {% set pct = [100, (s.minutes_this_week / s.weekly_goal_minutes * 100) | round | int] | min %}
+      <span class="meter" aria-hidden="true"><i style="--w: {{ pct }}%"></i></span>
+      {% endif %}</span>
+    <span><span class="lbl">Last practiced</span>{% if l.last_practiced_at %}{{ l.last_practiced_at.strftime('%b %d') }}{% else %}Never{% endif %}</span>
+    <span><span class="lbl">Tags</span>{% for t in tags.get(s.student_id, []) %}<span class="pill">{{ t }}</span> {% else %}<span class="muted small">None</span>{% endfor %}</span>
+  </a></li>
   {% endfor %}
 </ul>
-<p><a href="{{ url_for('auth.logout') }}">Log out</a></p>
+
+<div class="two section">
+  <section class="card" aria-labelledby="c1-h">
+    <h2 id="c1-h">Minutes per student this week</h2>
+    <p class="small muted" id="c1-sum">Loading…</p>
+    <div class="chart" id="chart-students"></div>
+  </section>
+  <section class="card" aria-labelledby="c2-h">
+    <h2 id="c2-h">Studio minutes per day · 8 weeks</h2>
+    <p class="small muted" id="c2-sum">Loading…</p>
+    <div class="chart" id="chart-daily"></div>
+  </section>
+</div>
+{% else %}
+<div class="empty">
+  <b>No students yet</b><br>Invite your first student by email, or share your join code.
+  <p><a class="btn" href="{{ url_for('teacher.invite') }}">Add a student</a></p>
+</div>
+{% endif %}
+
+{% if invites %}
+<p class="small muted section">{{ invites | length }} invite{{ 's' if invites | length != 1 }} waiting for an answer · <a href="{{ url_for('teacher.invite') }}">See invites</a></p>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if students %}
+<script src="https://cdn.plot.ly/plotly-3.6.0.min.js" charset="utf-8"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endif %}
+{% endblock %}

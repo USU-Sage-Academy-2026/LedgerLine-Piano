@@ -8,6 +8,7 @@ from werkzeug.security import generate_password_hash, check_password_hash #basic
 from .db import get_db
 from . import queries
 import functools
+import secrets
 import psycopg
 from email_validator import validate_email, EmailNotValidError
 
@@ -28,8 +29,11 @@ def home_url_for(role):
         return url_for("teacher.dashboard")
     return url_for("student.log_practice")
 
-def create_account(display_name, email, password, role, studio_name=None, city_id=None):
-    """Insert a user plus their students or studios row atomically. Returns the new user id."""
+def create_account(display_name, email, password, role, studio_name=None, city_id=None, parent_email=None):
+    """Insert a user plus their students or studios row atomically. Returns the new user id.
+
+    Teachers also get a random 6-digit join code and the 3 locked preset student tags.
+    """
     db = get_db()
     password_hash = generate_password_hash(password) # password hashing
     with db.transaction(): # allows for easier rollback if something goes wrong (eg bad city_id, but user info works)
@@ -43,12 +47,15 @@ def create_account(display_name, email, password, role, studio_name=None, city_i
         ).fetchone() # send to db
         user_id = row["id"]
         if role == "student": # role logic
-            db.execute("INSERT INTO students (user_id) VALUES (%s)", (user_id,))
+            db.execute("INSERT INTO students (user_id, parent_email) VALUES (%s, %s)", (user_id, parent_email))
         else:
+            # join_code is NOT NULL + UNIQUE (migration 002). A clash is 1 in ~1,000,000 per studio;
+            # if it happens the transaction fails and the user sees "try again".
             db.execute(
-                "INSERT INTO studios (teacher_id, city_id, name) VALUES (%s, %s, %s)",
-                (user_id, city_id, studio_name),
+                "INSERT INTO studios (teacher_id, city_id, name, join_code) VALUES (%s, %s, %s, %s)",
+                (user_id, city_id, studio_name, f"{secrets.randbelow(1_000_000):06d}"),
             )
+            db.execute(queries.PRESET_TAGS_CREATE, {"teacher_id": user_id})
     return user_id # log in automatically, no need to retype password
 
 def login_required(view): # wrapper function to ensure that the user is logged in before accessing certain routes
@@ -111,6 +118,7 @@ def register():
         role = form.get("role", "")
         studio_name = form.get("studio_name", "").strip()
         city_id = form.get("city_id", "")
+        parent_email = form.get("parent_email", "").strip().lower()
 
         error = None
         if role not in ("teacher", "student"): # force role
@@ -123,6 +131,10 @@ def register():
             error = f"Password must be at least {minlength} characters."
         elif role == "teacher" and (not studio_name or not city_id.isdigit()): # force required fields for teachers
             error = "Teachers need a studio name and a city."
+        elif role == "student" and parent_email and not is_valid_email(parent_email):
+            error = "Enter a valid contact email, or leave it empty."
+        elif password != form.get("password2", ""):
+            error = "The passwords don't match."
 
         if error is None:
             try:
@@ -130,11 +142,14 @@ def register():
                     display_name, email, password, role,
                     studio_name if role == "teacher" else None,
                     int(city_id) if role == "teacher" else None,
+                    parent_email if role == "student" and parent_email else None,
                 )
                 get_db().commit() # commit the transaction if everything is successful
             except psycopg.errors.UniqueViolation: # prevent runtime errors
+                get_db().rollback()
                 error = "That email is already registered."
             except psycopg.errors.ForeignKeyViolation:
+                get_db().rollback()
                 error = "Choose a city from the list."
             else:
                 session.clear()

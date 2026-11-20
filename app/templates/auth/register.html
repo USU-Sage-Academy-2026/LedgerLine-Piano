@@ -1,27 +1,59 @@
-<!doctype html>
-<title>Register – LedgerLine</title>
-<h1>Register</h1>
-{% for message in get_flashed_messages() %}<p>{{ message }}</p>{% endfor %}
-<form method="post">
-  <label>Name <input name="display_name" value="{{ form.display_name }}" required></label><br>
-  <label>Email <input type="email" name="email" value="{{ form.email }}" required></label><br>
-  <label>Password <input type="password" name="password" minlength="{{ MIN_PASSWORD_LENGTH }}" required></label><br>
-  <p>I am a:
-    <label><input type="radio" name="role" value="teacher" {% if form.role == 'teacher' %}checked{% endif %} required> Teacher</label>
-    <label><input type="radio" name="role" value="student" {% if form.role == 'student' %}checked{% endif %}> Student</label>
-  </p>
-  <fieldset>
-    <legend>Teachers only</legend>
-    <label>Studio name <input name="studio_name" value="{{ form.studio_name }}"></label><br>
-    <label>City
-      <select name="city_id">
-        <option value="">-- choose --</option>
+{% extends "base.html" %}
+{% block title %}Create account · LedgerLine{% endblock %}
+{% block main_class %}auth{% endblock %}
+{% block content %}
+<h1>Create account</h1>
+<form method="post" class="stack" id="regForm">
+  <fieldset class="field">
+    <legend>I am a</legend>
+    <div class="roles">
+      <label class="role"><input type="radio" name="role" value="student" {% if form.role != 'teacher' %}checked{% endif %}> Student</label>
+      <label class="role"><input type="radio" name="role" value="teacher" {% if form.role == 'teacher' %}checked{% endif %}> Teacher</label>
+    </div>
+  </fieldset>
+  <div class="field">
+    <label for="display_name">Full name</label>
+    <input id="display_name" name="display_name" autocomplete="name" value="{{ form.display_name }}" required>
+  </div>
+  <div class="field">
+    <label for="email">Email</label>
+    <input id="email" name="email" type="email" autocomplete="email" value="{{ form.email }}" required>
+  </div>
+  <div class="field student-only">
+    {# Stored in students.parent_email; labeled "contact" so adult students aren't confused. #}
+    <label for="parent_email">Contact email <span class="muted small">(optional)</span></label>
+    <input id="parent_email" name="parent_email" type="email" value="{{ form.parent_email }}" aria-describedby="contact-hint">
+    <p class="hint" id="contact-hint">Someone who can be sent your weekly progress card, like a parent. Leave empty if it's just you.</p>
+  </div>
+  <div class="field">
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" autocomplete="new-password"
+           minlength="{{ config.MIN_PASSWORD_LENGTH }}" aria-describedby="pw-hint" required>
+    <p class="hint" id="pw-hint">At least {{ config.MIN_PASSWORD_LENGTH }} characters. A short sentence works well.</p>
+  </div>
+  <div class="field">
+    <label for="password2">Re-type password</label>
+    <input id="password2" name="password2" type="password" autocomplete="new-password" required>
+  </div>
+  <div class="card stack teacher-only">
+    <p class="small muted">Teachers only</p>
+    <div class="field">
+      <label for="studio_name">Studio name</label>
+      <input id="studio_name" name="studio_name" value="{{ form.studio_name }}">
+    </div>
+    <div class="field">
+      <label for="city_id">City</label>
+      <select id="city_id" name="city_id">
+        <option value="">Choose a city</option>
         {% for city in cities %}
-          <option value="{{ city.id }}" {% if form.city_id == city.id|string %}selected{% endif %}>{{ city.name }}, {{ city.state }}</option>
+        <option value="{{ city.id }}" {% if form.city_id == city.id|string %}selected{% endif %}>{{ city.name }}, {{ city.state }}</option>
         {% endfor %}
       </select>
-    </label>
-  </fieldset>
-  <button type="submit">Create account</button>
+    </div>
+  </div>
+  <div class="spread">
+    <a href="{{ url_for('auth.login') }}">Already registered? Log in</a>
+    <button class="primary" type="submit">Create account</button>
+  </div>
 </form>
-<p><a href="{{ url_for('auth.login') }}">Already registered? Log in</a></p>
+{% endblock %}

@@ -99,6 +99,7 @@ TEMPLATES = [("Slow practice", "Hands separate at half tempo, 5 clean reps."),
 EXTRA_STUDENT_TAGS = [("Recital prep", "#2563EB"), ("Competition", "#D97706")]
 PIECE_TAGS = [("Recital", "#059669"), ("Sight-reading", "#7C3AED")]
 LEVEL_TAG_COLOR = "#6B7280"
+PRESET_STUDENT_TAGS = ["Beginner", "Adult", "RCM 4"]   # locked defaults every studio gets (same as auth.py)
 
 
 def level_tag_name(sort_order):
@@ -342,15 +343,17 @@ def insert_teacher(cur, rng, name, email, city_id, studio_name, pw_hash):
         print(f"join code for {email}: {join_code}")
     studio_id = cur.fetchone()[0]
     tags = {}
-    tag_rows = ([(level_tag_name(s), "student", LEVEL_TAG_COLOR) for s in range(1, 14)]
-                + [(n, "student", c) for n, c in EXTRA_STUDENT_TAGS]
-                + [(n, "piece", c) for n, c in PIECE_TAGS])
-    for tag_name, applies_to, color in tag_rows:
+    # (name, applies_to, color, is_preset): level tags + the 3 defaults are locked presets
+    tag_rows = ([(level_tag_name(s), "student", LEVEL_TAG_COLOR, True) for s in range(1, 14)]
+                + [(n, "student", LEVEL_TAG_COLOR, True) for n in PRESET_STUDENT_TAGS]
+                + [(n, "student", c, False) for n, c in EXTRA_STUDENT_TAGS]
+                + [(n, "piece", c, False) for n, c in PIECE_TAGS])
+    for tag_name, applies_to, color, is_preset in tag_rows:
         cur.execute("""
-            INSERT INTO tags (teacher_id, name, applies_to, color)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO tags (teacher_id, name, applies_to, color, is_preset)
+            VALUES (%s, %s, %s, %s, %s)
             RETURNING id
-        """, (teacher_id, tag_name, applies_to, color))
+        """, (teacher_id, tag_name, applies_to, color, is_preset))
         tags[tag_name] = cur.fetchone()[0]
     templates = []
     for title, body in TEMPLATES:

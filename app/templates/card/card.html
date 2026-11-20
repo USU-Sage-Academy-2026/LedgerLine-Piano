@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Weekly progress card · LedgerLine{% endblock %}
+{% block content %}
+<h1 class="visually-hidden">Weekly progress card</h1>
+<p class="small muted no-print">Shared weekly progress card · view only</p>
+{% include "card/_card_body.html" %}
+<p class="no-print section"><button class="secondary" type="button" onclick="window.print()">Save as PDF</button></p>
+{% endblock %}

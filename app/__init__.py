@@ -21,6 +21,14 @@ def create_app():
     app.register_blueprint(card.bp)
 
 
+    @app.route("/")
+    def home():
+        """Landing page with the 3D piano. Logged-in users get an 'Open the app' button."""
+        from flask import render_template, session
+        from .auth import home_url_for
+        app_home = home_url_for(session["role"]) if session.get("role") else None
+        return render_template("home.html", app_home=app_home)
+
     @app.route("/health")
     def health():
         """does it work?"""

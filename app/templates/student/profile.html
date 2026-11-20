@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Profile · LedgerLine{% endblock %}
+{% block content %}
+<h1>Profile</h1>
+<section class="card stack">
+  <p><b>{{ me.display_name }}</b> <span class="pill">Student</span></p>
+  <dl class="facts">
+    <dt>Email</dt><dd>{{ me.email }}</dd>
+    <dt>Studio</dt><dd>{% if me.studio_name %}{{ me.studio_name }} · {{ me.teacher_name }}{% else %}None yet (Student Solo). <a href="{{ url_for('student.log_practice') }}">Join with a code</a>{% endif %}</dd>
+  </dl>
+</section>
+<form method="post" class="card stack section">
+  <div class="field">
+    <label for="contact_email">Contact email <span class="muted small">(optional)</span></label>
+    <input id="contact_email" name="contact_email" type="email" value="{{ me.parent_email or '' }}" spellcheck="false" autocomplete="off" aria-describedby="contact-hint">
+    <p class="hint" id="contact-hint">Someone who can be sent your weekly progress card, like a parent. Leave empty if it’s just you.</p>
+  </div>
+  <button class="primary" type="submit">Save contact email</button>
+</form>
+<div class="spread section">
+  <a href="{{ url_for('home') }}">← LedgerLine home page</a>
+  <a class="secondary" href="{{ url_for('auth.logout') }}">Log out</a>
+</div>
+{% endblock %}

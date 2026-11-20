@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import ladder, difficulty, lock %}
+{% block title %}{{ student.display_name }} · LedgerLine{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('teacher.dashboard') }}">← Dashboard</a></p>
+<h1>{{ student.display_name }}</h1>
+<p class="small muted subtitle">
+  {{ profile.email }}{% if profile.parent_email %} · contact: {{ profile.parent_email }}{% endif %}
+  · last practiced {{ profile.last_practiced_at.strftime('%b %d') if profile.last_practiced_at else 'never' }}
+</p>
+
+{# ---------- student tags ---------- #}
+<div class="row tag-row">
+  {% for t in student_tags %}
+  <form method="post" action="{{ url_for('teacher.remove_student_tag', student_id=student.id, tag_id=t.id) }}" class="tagx">
+    {% if t.is_preset %}{{ lock() }}{% endif %}{{ t.name }}<button type="submit" aria-label="Remove tag {{ t.name }}">×</button>
+  </form>
+  {% endfor %}
+  {% if student_tag_options %}
+  <form method="post" action="{{ url_for('teacher.add_student_tag', student_id=student.id) }}" class="row">
+    <label for="addTag" class="visually-hidden">Add a tag</label>
+    <select id="addTag" name="tag_id" class="auto">
+      {% for t in student_tag_options %}<option value="{{ t.id }}">{{ t.name }}{% if t.is_preset %} (preset){% endif %}</option>{% endfor %}
+    </select>
+    <button class="secondary" type="submit">+ Add tag</button>
+  </form>
+  {% endif %}
+</div>
+
+{# ---------- this week + goal ---------- #}
+<div class="two section">
+  <section class="card" aria-labelledby="wk-h">
+    <p class="small muted" id="wk-h">This week’s minutes</p>
+    <p><span class="big">{{ week_total }}</span>{% if student.weekly_goal_minutes %} <span class="muted">/ {{ student.weekly_goal_minutes }} min goal</span>{% else %} <span class="muted">min · no goal set</span>{% endif %}</p>
+    {% if student.weekly_goal_minutes %}
+    {% set pct = [100, (week_total / student.weekly_goal_minutes * 100) | round | int] | min %}
+    <div class="meter" role="img" aria-label="{{ pct }}% of weekly goal"><i style="--w: {{ pct }}%"></i></div>
+    {% endif %}
+  </section>
+  <form method="post" action="{{ url_for('teacher.set_weekly_goal', student_id=student.id) }}" class="card stack">
+    <div class="field">
+      <label for="goal">Weekly goal (minutes)</label>
+      <input id="goal" name="weekly_goal_minutes" type="number" inputmode="numeric" min="1" max="5000"
+             value="{{ student.weekly_goal_minutes or '' }}" placeholder="e.g. 300…" autocomplete="off" aria-describedby="goal-hint">
+      <p class="hint" id="goal-hint">Leave empty for no goal. The student sees it on their log page.</p>
+    </div>
+    <button class="secondary" type="submit">Save goal</button>
+  </form>
+</div>
+
+{# ---------- current pieces ---------- #}
+<h2>Current pieces</h2>
+{% if pieces %}
+<ol class="list">
+  {% for p in pieces %}
+  {% set s = stage_of[p.student_piece_id] %}
+  <li class="card pcard2" id="piece-{{ p.student_piece_id }}">
+    <div class="ptop">
+      <span class="tnum">{{ loop.index }}</span>
+      <div class="min0">
+        <div class="title">{{ p.title }}</div>
+        <div class="small muted">by {{ p.composer }} · <span class="tnum">{{ minutes[loop.index0] }}</span> min this week</div>
+        <div class="small stage-line">{{ ladder(s.stage_position, p.stage) }}</div>
+        <div class="row tag-row">
+          {{ difficulty(s.rcm_level, s.henle_level) }}
+          {% for t in piece_tags.get(p.student_piece_id, []) %}
+          <form method="post" action="{{ url_for('teacher.remove_piece_tag', student_piece_id=p.student_piece_id, tag_id=t.id) }}" class="tagx">
+            {{ t.name }}<button type="submit" aria-label="Remove tag {{ t.name }} from {{ p.title }}">×</button>
+          </form>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <form method="post" action="{{ url_for('teacher.set_stage', student_piece_id=p.student_piece_id) }}" class="row">
+        <label for="stage{{ p.student_piece_id }}" class="visually-hidden">Stage for {{ p.title }}</label>
+        <select id="stage{{ p.student_piece_id }}" name="stage_id" class="auto">
+          {% for st in stages %}<option value="{{ st.id }}" {% if st.id == s.current_stage_id %}selected{% endif %}>{{ st.position }} · {{ st.name | capitalize }}</option>{% endfor %}
+        </select>
+        <button class="secondary" type="submit">Save stage</button>
+      </form>
+      <span class="order">
+        <form method="post" action="{{ url_for('teacher.move_piece', student_piece_id=p.student_piece_id) }}">
+          <button name="direction" value="up" aria-label="Move {{ p.title }} up" {% if loop.first %}disabled{% endif %}>↑</button>
+        </form>
+        <form method="post" action="{{ url_for('teacher.move_piece', student_piece_id=p.student_piece_id) }}">
+          <button name="direction" value="down" aria-label="Move {{ p.title }} down" {% if loop.last %}disabled{% endif %}>↓</button>
+        </form>
+      </span>
+      <form method="post" action="{{ url_for('teacher.finish_piece', student_piece_id=p.student_piece_id) }}"
+            data-confirm="Move {{ p.title }} to Finished? It leaves the current list (its logs are kept).">
+        <button class="quiet" type="submit">Mark finished</button>
+      </form>
+    </div>
+
+    <details>
+      <summary>Assignment{% if p.assignment_title %}: {{ p.assignment_title }}{% endif %}</summary>
+      <form method="post" action="{{ url_for('teacher.save_assignment', student_piece_id=p.student_piece_id) }}" class="stack">
+        <div class="field">
+          <label for="at{{ p.student_piece_id }}">Title</label>
+          <input id="at{{ p.student_piece_id }}" name="assignment_title" value="{{ p.assignment_title or '' }}" maxlength="80" autocomplete="off" required>
+        </div>
+        <div class="field">
+          <label for="ab{{ p.student_piece_id }}">What to practice</label>
+          <textarea id="ab{{ p.student_piece_id }}" name="assignment_body" rows="3" maxlength="1000">{{ p.assignment_body or '' }}</textarea>
+        </div>
+        <div class="field">
+          <label for="am{{ p.student_piece_id }}">Minutes a day <span class="muted small">(optional)</span></label>
+          <input id="am{{ p.student_piece_id }}" name="minutes_per_day" type="number" inputmode="numeric" min="1" max="300" value="{{ p.minutes_per_day or '' }}" class="narrow" autocomplete="off">
+        </div>
+        <button class="primary" type="submit">Save assignment</button>
+      </form>
+    </details>
+
+    <details>
+      <summary>Difficulty{% if not s.rcm_level and not s.henle_level %} (not set){% endif %}</summary>
+      <form method="post" action="{{ url_for('teacher.set_difficulty', student_piece_id=p.student_piece_id) }}" class="stack">
+        <div class="two">
+          <div class="field">
+            <label for="rcm{{ p.student_piece_id }}">RCM level</label>
+            <select id="rcm{{ p.student_piece_id }}" name="rcm_level_id">
+              <option value="">Not set</option>
+              {% for r in rcm_levels %}<option value="{{ r.id }}" {% if r.id == s.rcm_level_id %}selected{% endif %}>{{ r.name }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label for="henle{{ p.student_piece_id }}">Henle difficulty</label>
+            <select id="henle{{ p.student_piece_id }}" name="henle_level">
+              <option value="">Not set</option>
+              {% for h in range(1, 10) %}<option value="{{ h }}" {% if h == s.henle_level %}selected{% endif %}>{{ h }}{% if h == 1 %} (easiest){% elif h == 9 %} (hardest){% endif %}</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+        <p class="hint">Difficulty belongs to the piece, so it shows for every student who plays it.</p>
+        <button class="secondary" type="submit">Save difficulty</button>
+      </form>
+    </details>
+
+    {% set plogs = logs.get(p.student_piece_id, []) %}
+    <details>
+      <summary>Recent logs ({{ plogs | length }})</summary>
+      {% if plogs %}
+      <ul class="logs">
+        {% for l in plogs %}<li><b>{{ l.started_at.strftime('%a %b %d') }}</b> · <span class="tnum">{{ l.minutes }}</span> min{% if l.note %} · “{{ l.note }}”{% endif %}</li>{% endfor %}
+      </ul>
+      {% else %}<p class="small muted">No logs for this piece yet.</p>{% endif %}
+    </details>
+
+    {% if piece_tag_options %}
+    <form method="post" action="{{ url_for('teacher.add_piece_tag', student_piece_id=p.student_piece_id) }}" class="row">
+      <label for="pt{{ p.student_piece_id }}" class="visually-hidden">Add a tag to {{ p.title }}</label>
+      <select id="pt{{ p.student_piece_id }}" name="tag_id" class="auto">
+        {% for t in piece_tag_options %}<option value="{{ t.id }}">{{ t.name }}</option>{% endfor %}
+      </select>
+      <button class="secondary" type="submit">+ Tag piece</button>
+    </form>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ol>
+{% else %}
+<div class="empty"><b>No current pieces</b><br>Add the first piece below. The student sees pieces in this order.</div>
+{% endif %}
+
+<details class="card section" {% if not pieces %}open{% endif %}>
+  <summary><b>+ New piece</b></summary>
+  <form method="post" action="{{ url_for('teacher.add_piece', student_id=student.id) }}" class="stack">
+    <div class="two">
+      <div class="field"><label for="np-title">Title</label><input id="np-title" name="title" placeholder="e.g. Prelude in E minor, Op. 28 No. 4…" autocomplete="off" required></div>
+      <div class="field"><label for="np-comp">Composer</label><input id="np-comp" name="composer" placeholder="e.g. Chopin…" autocomplete="off"></div>
+    </div>
+    <div class="two">
+      <div class="field"><label for="np-rcm">RCM level <span class="muted small">(optional)</span></label>
+        <select id="np-rcm" name="rcm_level_id"><option value="">Not set</option>{% for r in rcm_levels %}<option value="{{ r.id }}">{{ r.name }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="np-henle">Henle difficulty <span class="muted small">(optional)</span></label>
+        <select id="np-henle" name="henle_level"><option value="">Not set</option>{% for h in range(1, 10) %}<option value="{{ h }}">{{ h }}{% if h == 1 %} (easiest){% elif h == 9 %} (hardest){% endif %}</option>{% endfor %}</select></div>
+    </div>
+    <div class="field"><label for="np-at">Assignment title</label><input id="np-at" name="assignment_title" placeholder="e.g. Hands separate…" maxlength="80" autocomplete="off" required></div>
+    <div class="field"><label for="np-ab">What to practice <span class="muted small">(optional)</span></label><textarea id="np-ab" name="assignment_body" rows="3" maxlength="1000"></textarea></div>
+    <div class="field"><label for="np-am">Minutes a day <span class="muted small">(optional)</span></label><input id="np-am" name="minutes_per_day" type="number" inputmode="numeric" min="1" max="300" class="narrow" autocomplete="off"></div>
+    <button class="primary" type="submit">Add piece at stage 1</button>
+  </form>
+</details>
+
+{% if pieces %}
+<h2>Practice by piece this week</h2>
+<section class="card">
+  <div class="hbars" role="img" aria-label="Minutes this week: {% for p in pieces %}{{ p.title }} {{ minutes[loop.index0] }}{% if not loop.last %}, {% endif %}{% endfor %}">
+    {% for p in pieces %}
+    <div class="hbar"><span class="truncate" title="{{ p.title }}">{{ p.title }}</span><i style="--v: {{ minutes[loop.index0] / max_minutes }}"></i><b class="tnum">{{ minutes[loop.index0] }}</b></div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{# ---------- lesson notes ---------- #}
+<h2>Lesson notes</h2>
+<form method="post" action="{{ url_for('teacher.add_lesson_note', student_id=student.id) }}" class="card stack">
+  <div class="field">
+    <label for="ln-about">About</label>
+    <select id="ln-about" name="student_piece_id">
+      <option value="">Whole lesson</option>
+      {% for p in pieces %}<option value="{{ p.student_piece_id }}">{{ p.title }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="ln-body">Note</label>
+    <textarea id="ln-body" name="body" maxlength="2000" required aria-describedby="ln-count" placeholder="What to work on before the next lesson…" data-count="#ln-count"></textarea>
+    <p class="ncount" id="ln-count" aria-live="polite">0/2000</p>
+  </div>
+  <button class="primary" type="submit">Add note</button>
+</form>
+{% if notes %}
+<ul class="list section">
+  {% for n in notes %}<li class="card"><span class="small muted">{{ n.lesson_date.strftime('%b %d') }} · {{ n.piece_title or 'Whole lesson' }}</span><p class="pre">{{ n.body }}</p></li>{% endfor %}
+</ul>
+{% else %}<div class="empty section">No lesson notes yet. Notes you add show up on the student’s card.</div>{% endif %}
+
+{# ---------- card + share links ---------- #}
+<h2 id="share">Weekly progress card</h2>
+<p><a class="secondary" href="{{ url_for('teacher.student_card', student_id=student.id) }}">Preview this week’s card</a></p>
+{% set action = url_for('teacher.create_share_link', student_id=student.id) %}
+{% include "partials/share_form.html" %}
+{% if links %}
+<ul class="list section">
+  {% for link in links %}
+  <li class="card stack">
+    <div class="spread">
+      <span><b>Week of {{ link.week_start.strftime('%b %d') }}</b> · <span class="pill {{ 'stage' if link.state == 'active' }}">{{ link.state | capitalize }}</span></span>
+      {% if link.state == 'active' %}
+      <form method="post" action="{{ url_for('teacher.revoke_share_link', link_id=link.id) }}" data-confirm="Turn off this link? Anyone who opens it will see “not available”.">
+        <button class="secondary danger" type="submit">Turn off link</button>
+      </form>
+      {% endif %}
+    </div>
+    {% if link.state == 'active' %}
+    <div class="linkbox">
+      <label for="link{{ link.id }}" class="visually-hidden">Share link for the week of {{ link.week_start.strftime('%b %d') }}</label>
+      <input id="link{{ link.id }}" readonly value="{{ url_for('card.view_card', token=link.token, _external=True) }}" spellcheck="false">
+      <button class="primary" type="button" data-copy="#link{{ link.id }}">Copy</button>
+    </div>
+    <p class="hint">Expires {{ link.expires_at.strftime('%b %d, %Y') }}.</p>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+<h2>Finished pieces</h2>
+{% if finished %}
+<ul class="list">
+  {% for p in finished %}<li class="card"><b>{{ p.title }}</b> <span class="small muted">· {{ p.composer }} · {{ p.completed_on.strftime('%b %d, %Y') }}</span><div class="small stage-line">{{ ladder(p.stage_position, p.stage) }}</div></li>{% endfor %}
+</ul>
+{% else %}<div class="empty">Nothing finished yet.</div>{% endif %}
+{% endblock %}

@@ -1,0 +1,64 @@
+{# The weekly progress card. Included by the public, student and teacher card pages.
+   Needs `card` from load_card() in app/card.py. Sections hidden by the share checkboxes
+   aren't just hidden here: their data was never queried. #}
+{% from "partials/macros.html" import ladder %}
+{% set f = card.fields %}
+{% set name_parts = card.student.display_name.split() %}
+<article class="pcard-full" aria-labelledby="card-name">
+  <p class="eyebrow">Week of {{ card.week_start.strftime('%b %d, %Y') }}</p>
+  <p class="card-name" id="card-name">
+    {% if f.show_name %}{{ name_parts[0] }}{% if name_parts | length > 1 %} {{ name_parts[-1][0] }}.{% endif %}{% else %}A LedgerLine student{% endif %}
+  </p>
+
+  {% if f.show_minutes %}
+  <section class="card">
+    <p class="small muted">Week total</p>
+    <p><span class="big">{{ card.week_total }}</span> <span class="muted">min{% if card.student.weekly_goal_minutes %} of {{ card.student.weekly_goal_minutes }} goal{% endif %}</span></p>
+  </section>
+  <div class="two">
+    <section class="card" aria-labelledby="days-h">
+      <h2 id="days-h">Minutes per day</h2>
+      <div class="cbars" style="--n: 7" role="img"
+           aria-label="Minutes per day: {% for d in card.days %}{{ d.day.strftime('%a') }} {{ d.minutes }}{% if not loop.last %}, {% endif %}{% endfor %}">
+        {% for d in card.days %}
+        <div class="cbar"><b>{{ d.minutes or '' }}</b><i style="--v: {{ d.minutes / card.max_day }}"></i><span>{{ d.day.strftime('%a')[:2] }}</span></div>
+        {% endfor %}
+      </div>
+    </section>
+    <section class="card" aria-labelledby="weeks-h">
+      <h2 id="weeks-h">Last 4 weeks</h2>
+      <div class="cbars" style="--n: 4" role="img"
+           aria-label="Minutes per week: {% for w in card.weeks %}week of {{ w.week_start.strftime('%b %d') }} {{ w.minutes }}{% if not loop.last %}, {% endif %}{% endfor %}">
+        {% for w in card.weeks %}
+        <div class="cbar"><b>{{ w.minutes }}</b><i style="--v: {{ w.minutes / card.max_week }}" {% if loop.last %}class="now"{% endif %}></i><span>{{ w.week_start.strftime('%b %d') }}</span></div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+  {% endif %}
+
+  {% if f.show_pieces or f.show_stages %}
+  <h2>Pieces</h2>
+  {% if card.pieces %}
+  <ul class="list">
+    {% for p in card.pieces %}
+    <li class="card">
+      {% if f.show_pieces %}<b>{{ p.title }}</b> <span class="muted small">· {{ p.composer }}</span>{% else %}<b>Piece {{ loop.index }}</b>{% endif %}
+      {% if f.show_stages %}<div class="small stage-line">{{ ladder(p.stage_position, p.stage) }}</div>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}<div class="empty">No current pieces.</div>{% endif %}
+  {% endif %}
+
+  {% if f.show_teacher_notes %}
+  <h2>Teacher notes</h2>
+  {% if card.notes %}
+  <ul class="list">
+    {% for n in card.notes %}
+    <li class="card"><span class="small muted">{{ n.lesson_date.strftime('%b %d') }} · {{ n.piece_title or 'Whole lesson' }}</span><p class="pre">{{ n.body }}</p></li>
+    {% endfor %}
+  </ul>
+  {% else %}<div class="empty">No lesson notes this week.</div>{% endif %}
+  {% endif %}
+</article>

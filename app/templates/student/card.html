@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}My weekly card · LedgerLine{% endblock %}
+{% block content %}
+<h1>Weekly progress card</h1>
+{% include "card/_card_body.html" %}
+
+<div class="no-print stack section">
+  {% if link %}
+  <section class="card stack">
+    <h2>Your share link</h2>
+    <div class="linkbox">
+      <label for="shareUrl" class="visually-hidden">Share link</label>
+      <input id="shareUrl" readonly value="{{ url_for('card.view_card', token=link.token, _external=True) }}">
+      <button class="primary" type="button" data-copy="#shareUrl">Copy</button>
+    </div>
+    <p class="hint">Works until {{ link.expires_at.strftime('%b %d, %Y') }}. Ask your teacher if it needs to be turned off.</p>
+  </section>
+  {% endif %}
+  {% set action = url_for('student.share') %}
+  {% include "partials/share_form.html" %}
+  <p><button class="secondary" type="button" onclick="window.print()">Save as PDF</button></p>
+</div>
+{% endblock %}
+

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import lock %}
+{% block title %}Tags · LedgerLine{% endblock %}
+{% block content %}
+<h1>Tags</h1>
+<p class="muted subtitle">Tags are text labels you put on students and pieces.</p>
+<p class="legend small"><span class="tagx locked">{{ lock() }}Preset</span> = comes with every studio; can’t be renamed or deleted (you can still add it to or remove it from a student).</p>
+
+<section class="card section" aria-labelledby="tg-piece">
+  <h2 id="tg-piece">Piece tags</h2>
+  <div class="row tag-row">
+    {% for t in piece_tags %}
+    <form method="post" action="{{ url_for('teacher.delete_tag', tag_id=t.id) }}" class="tagx"
+          data-confirm="Delete the tag “{{ t.name }}”? It’s removed from every piece that has it.">
+      {{ t.name }}<button type="submit" aria-label="Delete tag {{ t.name }}">×</button>
+    </form>
+    {% else %}<span class="muted small">No piece tags yet.</span>{% endfor %}
+  </div>
+  <h3 class="subhead">Difficulty <span class="muted small">(set on each piece, shown next to its tags)</span></h3>
+  <div class="row tag-row">
+    <span class="pill level">{{ lock() }}RCM Prep A – ARCT</span>
+    <span class="pill level">{{ lock() }}Henle 1 (easiest) – 9 (hardest)</span>
+  </div>
+  <p class="hint">Open a student, then a piece’s <b>Difficulty</b> section to set it.</p>
+</section>
+
+<section class="card section" aria-labelledby="tg-student">
+  <h2 id="tg-student">Student tags</h2>
+  <div class="row tag-row">
+    {% for t in student_tags %}
+      {% if t.is_preset %}
+      <span class="tagx locked" title="Preset tag: can’t be renamed or deleted">{{ lock() }}{{ t.name }}<span class="visually-hidden"> (preset, locked)</span></span>
+      {% else %}
+      <form method="post" action="{{ url_for('teacher.delete_tag', tag_id=t.id) }}" class="tagx"
+            data-confirm="Delete the tag “{{ t.name }}”? It’s removed from every student who has it.">
+        {{ t.name }}<button type="submit" aria-label="Delete tag {{ t.name }}">×</button>
+      </form>
+      {% endif %}
+    {% else %}<span class="muted small">No student tags yet.</span>{% endfor %}
+  </div>
+</section>
+<form method="post" class="card stack section" aria-labelledby="new-tag-h">
+  <h2 id="new-tag-h">New tag</h2>
+  <div class="field">
+    <label for="tag-name">Tag name</label>
+    <input id="tag-name" name="name" maxlength="24" placeholder="e.g. Recital…" autocomplete="off" required>
+  </div>
+  <fieldset class="field">
+    <legend>Applies to</legend>
+    <div class="roles">
+      <label class="role"><input type="radio" name="applies_to" value="piece" checked> Pieces</label>
+      <label class="role"><input type="radio" name="applies_to" value="student"> Students</label>
+    </div>
+  </fieldset>
+  <button class="primary" type="submit">Add tag</button>
+</form>
+{% endblock %}

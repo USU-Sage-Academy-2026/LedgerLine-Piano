@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Progress cards · LedgerLine{% endblock %}
+{% block content %}
+<h1>Progress cards</h1>
+{% if roster %}
+<form method="get" class="filters no-print">
+  <div class="field grow">
+    <label for="student_id">Student</label>
+    <select id="student_id" name="student_id">
+      {% for s in roster %}<option value="{{ s.student_id }}" {% if s.student_id == student.id %}selected{% endif %}>{{ s.display_name }}</option>{% endfor %}
+    </select>
+  </div>
+  <button class="secondary" type="submit">Show card</button>
+</form>
+{% include "card/_card_body.html" %}
+<div class="row no-print section">
+  <a class="primary" href="{{ url_for('teacher.student_detail', student_id=student.id, _anchor='share') }}">Share this card</a>
+  <button class="secondary" type="button" onclick="window.print()">Save as PDF</button>
+</div>
+{% else %}
+<div class="empty"><b>No students yet</b><br>Cards appear once students join your studio.</div>
+{% endif %}
+{% endblock %}

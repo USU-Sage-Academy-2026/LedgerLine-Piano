@@ -11,4 +11,7 @@ class Config:
 
     INSIGHTS_MIN_GROUP = 10
 
+    # Shown on the login page so testers can try the seeded demo accounts. Leave unset to hide.
+    DEMO_PASSWORD = os.environ.get("DEMO_PASSWORD")
+
     MIN_PASSWORD_LENGTH = 15  # NIST SP 800-63B-4: single-factor passwords

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import ladder, difficulty %}
+{% block title %}My pieces · LedgerLine{% endblock %}
+{% block content %}
+<h1>My pieces</h1>
+<h2>Current</h2>
+{% if pieces %}
+<ol class="list">
+  {% for p in pieces %}
+  {% set s = stage_of[p.student_piece_id] %}
+  <li class="card pc">
+    <span class="tnum">{{ loop.index }}</span>
+    <div>
+      <div class="title">{{ p.title }} <span class="muted small">· {{ p.composer }}</span></div>
+      <div class="small stage-line">{{ ladder(s.stage_position, p.stage) }}</div>
+      {% if s.rcm_level or s.henle_level %}<div class="row tag-row">{{ difficulty(s.rcm_level, s.henle_level) }}</div>{% endif %}
+      {% if p.assignment_title %}
+      <p class="tnote"><b>{{ p.assignment_title }}</b>{% if p.assignment_body %}: {{ p.assignment_body }}{% endif %}{% if p.minutes_per_day %} ({{ p.minutes_per_day }} min a day){% endif %}</p>
+      {% endif %}
+    </div>
+  </li>
+  {% endfor %}
+</ol>
+{% else %}
+<div class="empty"><b>No current pieces</b><br>Your teacher assigns them in order.</div>
+{% endif %}
+
+<h2>Finished</h2>
+{% if finished %}
+<ul class="list">
+  {% for p in finished %}
+  <li class="card"><b>{{ p.title }}</b> <span class="muted small">· {{ p.composer }} · finished {{ p.completed_on.strftime('%b %d, %Y') }}</span>
+    <div class="small stage-line">{{ ladder(p.stage_position, p.stage) }}</div></li>
+  {% endfor %}
+</ul>
+{% else %}
+<div class="empty">Finished pieces will collect here.</div>
+{% endif %}
+{% endblock %}

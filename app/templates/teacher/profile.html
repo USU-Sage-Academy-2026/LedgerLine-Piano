@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Profile · LedgerLine{% endblock %}
+{% block content %}
+<h1>Profile</h1>
+<section class="card stack">
+  <p><b>{{ me.display_name }}</b> <span class="pill">Teacher</span></p>
+  <dl class="facts">
+    <dt>Email</dt><dd>{{ me.email }}</dd>
+    <dt>City</dt><dd>{{ me.city }}, {{ me.state }}</dd>
+    <dt>Students</dt><dd class="tnum">{{ me.student_count }}</dd>
+    <dt>Join code</dt><dd class="tnum" translate="no">{{ me.join_code[:3] }} {{ me.join_code[3:] }} · <a href="{{ url_for('teacher.invite') }}">Manage</a></dd>
+  </dl>
+</section>
+<form method="post" class="card stack section">
+  <div class="field">
+    <label for="studio_name">Studio name</label>
+    <input id="studio_name" name="studio_name" value="{{ me.studio_name }}" maxlength="80" autocomplete="organization" required>
+  </div>
+  <button class="primary" type="submit">Save studio name</button>
+</form>
+<div class="spread section">
+  <a href="{{ url_for('home') }}">← LedgerLine home page</a>
+  <a class="secondary" href="{{ url_for('auth.logout') }}">Log out</a>
+</div>
+{% endblock %}
