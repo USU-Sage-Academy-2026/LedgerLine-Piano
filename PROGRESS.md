@@ -50,6 +50,8 @@ One entry per block: what got done, what's left, any blockers, confidence (1–5
 
 2026-11-20 07:55 | Cloud/DevOps | done: first Render deploy (ledgerline-akl7.onrender.com), .python-version, env vars, DB verified live | blocked: none | next: print-color fix, docs/deployment.md + deployment diagram, Vercel landing page
 
+2026-11-21 10:30 | Product & Business Strategist | done: business plan approved (P1–P10), plan-and-decisions updated | blocked: replace-vs-alongside positioning still open | next: update Project key_decisions; use new pricing in demo + trailer scripts; README business section Sun
+
 ## Later
 - Multiple teachers per student → enrollments(student_id, teacher_id, started_on, ended_on); also keeps history when a student switches teachers
 - Multiple teachers per studio → studio_members(studio_id, user_id, role); pricing decision in Strategist chat
