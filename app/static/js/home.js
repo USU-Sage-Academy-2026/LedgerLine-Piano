@@ -365,6 +365,42 @@ function proceduralRig(renderer) {
 
 /* ---------- paper textures drawn on <canvas>: engraved sheet music + handwritten/printed notes ---------- */
 let _paper;
+
+/* ---------- paper surface: fibres in the colour + a tiny bump, and almost no specular,
+   so sheets stay matte under the stage light instead of shining like plastic ---------- */
+let _paperBump = null;
+function paperBump() {                      // one shared grey-noise texture, tiled over every page
+  if (_paperBump) return _paperBump;
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const g = c.getContext('2d'), img = g.createImageData(256, 256);
+  let s = 11; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < img.data.length; i += 4) { const v = 118 + rnd() * 20; img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255; }
+  g.putImageData(img, 0, 0);
+  g.globalAlpha = 0.25; g.strokeStyle = '#fff'; g.lineWidth = 0.6;
+  for (let i = 0; i < 140; i++) { const x = rnd() * 256, y = rnd() * 256, a = rnd() * Math.PI, l = 4 + rnd() * 10;
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke(); }
+  _paperBump = new THREE.CanvasTexture(c);
+  _paperBump.wrapS = _paperBump.wrapT = THREE.RepeatWrapping; _paperBump.repeat.set(6, 8);
+  return _paperBump;
+}
+function paperGrain(g, w, h) {              // faint fibres + speckles in the paper colour itself
+  let s = 5; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  g.save(); g.lineWidth = 0.7;
+  for (let i = 0; i < (w * h) / 900; i++) {
+    const x = rnd() * w, y = rnd() * h, a = rnd() * Math.PI, l = 3 + rnd() * 9;
+    g.strokeStyle = rnd() < 0.5 ? 'rgba(120,100,70,.07)' : 'rgba(255,255,255,.18)';
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke();
+  }
+  g.restore();
+}
+function paperMaterial(map, tint = 0xffffff) {
+  return new THREE.MeshPhysicalMaterial({
+    map, color: tint, roughness: 1, metalness: 0,
+    specularIntensity: 0.15,                // paper reflects very little light
+    bumpMap: paperBump(), bumpScale: 0.6, side: THREE.DoubleSide,
+  });
+}
+
 function paperMaterials(renderer) {
   if (_paper) return _paper;
   const aniso = renderer.capabilities.getMaxAnisotropy();
@@ -379,10 +415,11 @@ function paperMaterials(renderer) {
     const c = document.createElement('canvas'); c.width = PW; c.height = PH;
     const g = c.getContext('2d');
     g.fillStyle = '#F7F3EA'; g.fillRect(0, 0, PW, PH);
+    paperGrain(g, PW, PH);
     g.fillStyle = INK; g.strokeStyle = INK; g.lineCap = 'round';
     draw(g);
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = aniso; t.flipY = false;
-    const mat = new THREE.MeshStandardMaterial({ map: t, color: tint, roughness: 1, side: THREE.DoubleSide });
+    const mat = paperMaterial(t, tint);
     mat.userData.tint = new THREE.Color(tint);               // syncTheme() dims it in dark mode
     return mat;
   }
@@ -703,9 +740,11 @@ function buildPiano(renderer) {
     const c = document.createElement('canvas'); c.width = 512; c.height = 700;
     const g = c.getContext('2d');
     g.fillStyle = '#F4F0E6'; g.fillRect(0, 0, c.width, c.height);
+    paperGrain(g, c.width, c.height);
     draw(g, c);
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = aniso;
-    return new THREE.MeshStandardMaterial({ map: t, roughness: 0.9 });
+    const mat = paperMaterial(t); mat.side = THREE.FrontSide;
+    return mat;
   }
   function staves(g, y0, count) {
     g.strokeStyle = 'rgba(19,34,56,.35)'; g.lineWidth = 1.5;
